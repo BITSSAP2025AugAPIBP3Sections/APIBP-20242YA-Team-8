@@ -20,14 +20,12 @@ public class FolderController {
         this.folderService = folderService;
     }
 
-    // ✅ Create a new folder
     @PostMapping
     public ResponseEntity<FolderResponse> createFolder(@RequestBody FolderRequest request) {
         Folder folder = folderService.createFolder(request.getName(), request.getParentId());
         return ResponseEntity.ok(new FolderResponse(folder));
     }
 
-    // ✅ Get all folders
     @GetMapping
     public ResponseEntity<List<FolderResponse>> getAllFolders() {
         List<FolderResponse> folders = folderService.getAllFolders()
@@ -37,21 +35,18 @@ public class FolderController {
         return ResponseEntity.ok(folders);
     }
 
-    // ✅ Get a folder by ID
     @GetMapping("/{id}")
     public ResponseEntity<FolderResponse> getFolderById(@PathVariable Long id) {
         Folder folder = folderService.getFolderById(id);
         return ResponseEntity.ok(new FolderResponse(folder));
     }
 
-    // ✅ Rename an existing folder
     @PutMapping("/{id}")
     public ResponseEntity<FolderResponse> renameFolder(@PathVariable Long id, @RequestBody FolderRequest request) {
         Folder updatedFolder = folderService.renameFolder(id, request.getName());
         return ResponseEntity.ok(new FolderResponse(updatedFolder));
     }
 
-    // ✅ Delete a folder by ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFolder(@PathVariable Long id) {
         folderService.deleteFolder(id);
