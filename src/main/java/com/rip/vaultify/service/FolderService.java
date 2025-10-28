@@ -16,7 +16,6 @@ public class FolderService {
         this.folderRepository = folderRepository;
     }
 
-    // ✅ Create folder (with optional parent)
     @Transactional
     public Folder createFolder(String name, Long parentId) {
         Folder folder = new Folder();
@@ -31,18 +30,15 @@ public class FolderService {
         return folderRepository.save(folder);
     }
 
-    // ✅ Get all folders
     public List<Folder> getAllFolders() {
         return folderRepository.findAll();
     }
 
-    // ✅ Get folder by ID
     public Folder getFolderById(Long id) {
         return folderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Folder not found with id: " + id));
     }
 
-    // ✅ Rename existing folder
     @Transactional
     public Folder renameFolder(Long id, String newName) {
         Folder folder = getFolderById(id);
@@ -50,14 +46,12 @@ public class FolderService {
         return folderRepository.save(folder);
     }
 
-    // ✅ Delete folder by ID
     @Transactional
     public void deleteFolder(Long id) {
         Folder folder = getFolderById(id);
         folderRepository.delete(folder);
     }
 
-    // ✅ Optionally fetch folder contents recursively
     @Transactional(readOnly = true)
     public Folder getFolderContents(Long id) {
         Folder folder = getFolderById(id);

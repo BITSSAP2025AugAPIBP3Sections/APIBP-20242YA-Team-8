@@ -27,7 +27,6 @@ public class FolderResponse {
         }
     }
 
-    // Parent DTO (lightweight)
     public static class ParentInfo {
         private Long id;
         private String name;
@@ -41,7 +40,6 @@ public class FolderResponse {
         public String getName() { return name; }
     }
 
-    // Child DTO (lightweight)
     public static class ChildInfo {
         private Long id;
         private String name;
