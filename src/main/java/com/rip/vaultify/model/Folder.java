@@ -41,4 +41,11 @@ public class Folder {
     public List<Folder> getChildren() { return children; }
 
     public void setChildren(List<Folder> children) { this.children = children; }
+
+    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<File> files;
+
+    public List<File> getFiles() { return files; }
+    public void setFiles(List<File> files) { this.files = files; }
 }
