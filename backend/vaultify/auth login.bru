@@ -1,0 +1,26 @@
+meta {
+  name: auth login
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/auth/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "bob",
+    "password": "Password456"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
