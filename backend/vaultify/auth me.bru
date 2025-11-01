@@ -1,0 +1,27 @@
+meta {
+  name: auth me
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8080/auth/me
+  body: none
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJib2IiLCJpYXQiOjE3NjE1OTE1MjEsImV4cCI6MTc2MTY3NzkyMSwicm9sZXMiOlsiUk9MRV9VU0VSIl19.xiaaOPyNqVLxwwPAvhlp4G2Yg0KS4m7S187Efy6nmoM
+}
+
+body:json {
+  {
+    "username": "alice",
+    "password": "Password123"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
