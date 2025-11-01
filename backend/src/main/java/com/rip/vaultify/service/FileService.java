@@ -2,6 +2,7 @@ package com.rip.vaultify.service;
 
 import com.rip.vaultify.model.File;
 import com.rip.vaultify.model.Folder;
+import com.rip.vaultify.model.User;
 import com.rip.vaultify.repository.FileRepository;
 import com.rip.vaultify.repository.FolderRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,10 +33,16 @@ public class FileService {
     }
 
     @Transactional
-    public File uploadFile(MultipartFile multipartFile, Long folderId) throws IOException {
-        // Validate folder exists
+    public File uploadFile(MultipartFile multipartFile, Long folderId, Long userId) throws IOException {
+        // Validate folder exists and belongs to user
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new RuntimeException("Folder not found with id: " + folderId));
+        
+        if (!folder.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Folder does not belong to user");
+        }
+        
+        User user = folder.getUser();
 
         // Create upload directory if not exists
         Path uploadPath = Paths.get(uploadDirectory);
@@ -58,24 +65,29 @@ public class FileService {
                 multipartFile.getContentType(),
                 multipartFile.getSize(),
                 filePath.toString(),
-                folder
+                folder,
+                user
         );
 
         return fileRepository.save(file);
     }
 
-    public List<File> getFilesByFolder(Long folderId) {
-        return fileRepository.findByFolderId(folderId);
+    public List<File> getFilesByFolder(Long folderId, Long userId) {
+        return fileRepository.findByFolderIdAndUserId(folderId, userId);
     }
 
-    public File getFileById(Long id) {
-        return fileRepository.findById(id)
+    public File getFileByIdAndUser(Long id, Long userId) {
+        File file = fileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("File not found with id: " + id));
+        if (!file.getUser().getId().equals(userId)) {
+            throw new RuntimeException("File does not belong to user");
+        }
+        return file;
     }
 
     @Transactional
-    public void deleteFile(Long id) throws IOException {
-        File file = getFileById(id);
+    public void deleteFile(Long id, Long userId) throws IOException {
+        File file = getFileByIdAndUser(id, userId);
 
         // Delete physical file
         Path filePath = Paths.get(file.getFilePath());
@@ -87,8 +99,8 @@ public class FileService {
         fileRepository.delete(file);
     }
 
-    public byte[] downloadFile(Long id) throws IOException {
-        File file = getFileById(id);
+    public byte[] downloadFile(Long id, Long userId) throws IOException {
+        File file = getFileByIdAndUser(id, userId);
         Path filePath = Paths.get(file.getFilePath());
         return Files.readAllBytes(filePath);
     }

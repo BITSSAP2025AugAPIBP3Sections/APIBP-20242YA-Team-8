@@ -22,7 +22,9 @@ const Folders = () => {
     try {
       setLoading(true);
       const response = await folderAPI.getAll();
-      setFolders(response.data);
+      // Filter to show only root folders (folders without a parent)
+      const rootFolders = response.data.filter(folder => !folder.parent);
+      setFolders(rootFolders);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch folders');
     } finally {

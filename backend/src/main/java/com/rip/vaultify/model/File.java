@@ -35,16 +35,22 @@ public class File {
     @JsonBackReference
     private Folder folder;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference
+    private User user;
+
     // Constructors
     public File() {}
 
-    public File(String originalName, String storedName, String contentType, Long size, String filePath, Folder folder) {
+    public File(String originalName, String storedName, String contentType, Long size, String filePath, Folder folder, User user) {
         this.originalName = originalName;
         this.storedName = storedName;
         this.contentType = contentType;
         this.size = size;
         this.filePath = filePath;
         this.folder = folder;
+        this.user = user;
         this.uploadedAt = LocalDateTime.now();
     }
 
@@ -72,4 +78,7 @@ public class File {
 
     public Folder getFolder() { return folder; }
     public void setFolder(Folder folder) { this.folder = folder; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }

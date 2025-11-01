@@ -8,4 +8,7 @@ import java.util.List;
 @Repository
 public interface FolderRepository extends JpaRepository<Folder, Long> {
     List<Folder> findByParentId(Long parentId);
+    List<Folder> findByUserId(Long userId);
+    List<Folder> findByUserIdAndParentIdIsNull(Long userId);
+    List<Folder> findByUserIdAndParentId(Long userId, Long parentId);
 }

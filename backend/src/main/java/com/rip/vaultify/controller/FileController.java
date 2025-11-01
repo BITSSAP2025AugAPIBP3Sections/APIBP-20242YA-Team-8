@@ -2,7 +2,9 @@ package com.rip.vaultify.controller;
 
 import com.rip.vaultify.dto.FileResponse;
 import com.rip.vaultify.model.File;
+import com.rip.vaultify.model.User;
 import com.rip.vaultify.service.FileService;
+import com.rip.vaultify.service.UserService;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -19,23 +21,26 @@ import java.util.stream.Collectors;
 public class FileController {
 
     private final FileService fileService;
+    private final UserService userService;
 
-    public FileController(FileService fileService) {
+    public FileController(FileService fileService, UserService userService) {
         this.fileService = fileService;
+        this.userService = userService;
     }
 
     @PostMapping("/upload")
     public ResponseEntity<FileResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("folderId") Long folderId) throws IOException {
-
-        File uploadedFile = fileService.uploadFile(file, folderId);
+        User currentUser = userService.getCurrentUser();
+        File uploadedFile = fileService.uploadFile(file, folderId, currentUser.getId());
         return ResponseEntity.ok(new FileResponse(uploadedFile));
     }
 
     @GetMapping("/folder/{folderId}")
     public ResponseEntity<List<FileResponse>> getFilesByFolder(@PathVariable Long folderId) {
-        List<FileResponse> files = fileService.getFilesByFolder(folderId)
+        User currentUser = userService.getCurrentUser();
+        List<FileResponse> files = fileService.getFilesByFolder(folderId, currentUser.getId())
                 .stream()
                 .map(FileResponse::new)
                 .collect(Collectors.toList());
@@ -44,20 +49,23 @@ public class FileController {
 
     @GetMapping("/{id}")
     public ResponseEntity<FileResponse> getFileById(@PathVariable Long id) {
-        File file = fileService.getFileById(id);
+        User currentUser = userService.getCurrentUser();
+        File file = fileService.getFileByIdAndUser(id, currentUser.getId());
         return ResponseEntity.ok(new FileResponse(file));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFile(@PathVariable Long id) throws IOException {
-        fileService.deleteFile(id);
+        User currentUser = userService.getCurrentUser();
+        fileService.deleteFile(id, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/download")
     public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable Long id) throws IOException {
-        File file = fileService.getFileById(id);
-        byte[] data = fileService.downloadFile(id);
+        User currentUser = userService.getCurrentUser();
+        File file = fileService.getFileByIdAndUser(id, currentUser.getId());
+        byte[] data = fileService.downloadFile(id, currentUser.getId());
 
         ByteArrayResource resource = new ByteArrayResource(data);
 
