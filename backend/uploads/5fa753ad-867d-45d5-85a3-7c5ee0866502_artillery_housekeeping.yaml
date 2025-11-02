@@ -1,0 +1,91 @@
+config:
+  target: "https://perf.eu10.alm.cloud.sap"
+  phases:
+    - duration: 1
+      arrivalRate: 10
+      name: "Concurrent tenant execution"
+  defaults:
+    headers:
+      authorization: "Basic b3BlcmF0aW9ucy10ZWNobmljYWwtdXNlcjpYbXhUQWNIejVhdkFUTkg1"
+      content-type: "application/json"
+
+scenarios:
+  - name: "Housekeeping Request 01"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-01"
+
+  - name: "Housekeeping Request 02"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-02"
+
+  - name: "Housekeeping Request 03"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-03"
+
+  - name: "Housekeeping Request 04"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-04"
+
+  - name: "Housekeeping Request 05"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-05"
+
+  - name: "Housekeeping Request 06"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-06"
+
+  - name: "Housekeeping Request 07"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-07"
+
+  - name: "Housekeeping Request 08"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-08"
+
+  - name: "Housekeeping Request 09"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-09"
+
+  - name: "Housekeeping Request 10"
+    weight: 1
+    flow:
+      - post:
+          url: "/internal-api/x-iep-srv-api/v1/iep/testDataManagement/internal-housekeeping"
+          headers:
+            dwc-subdomain: "calm-test-performance-eu10-004-relctestperf-scalability-10"
