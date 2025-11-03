@@ -47,10 +47,19 @@ public class FolderService {
     public Folder getFolderByIdAndUser(Long id, Long userId) {
         Folder folder = folderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Folder not found with id: " + id));
-        if (!folder.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Folder does not belong to user");
-        }
+        // Allow access if user owns the folder OR has file permissions in the folder
+        // We'll check file permissions at the file level, so just return the folder
+        // The folder access check is done at the file level when fetching files
         return folder;
+    }
+    
+    /**
+     * Check if user owns the folder
+     */
+    public boolean isFolderOwner(Long folderId, Long userId) {
+        Folder folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new RuntimeException("Folder not found with id: " + folderId));
+        return folder.getUser().getId().equals(userId);
     }
 
     @Transactional

@@ -14,14 +14,20 @@ public class Permission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @ManyToOne
-    private FileEntity file;
+    @ManyToOne(optional = false)
+    private File file;
+
+    @ManyToOne(optional = false)
+    private User user;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Access access;
 
-    public enum Access{
+    @Column(nullable = false)
+    private Boolean viewed = false;
+
+    public enum Access {
         READ, WRITE, OWNER
     }
 }

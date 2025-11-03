@@ -69,10 +69,21 @@ export const fileAPI = {
   download: (id) => api.get(`/api/files/${id}/download`, { responseType: 'blob' }),
 };
 
-// Note: This endpoint doesn't exist yet in the backend
-// You'll need to add it to UserController
 export const userAPI = {
   getAll: () => api.get('/api/users'),
+};
+
+export const permissionAPI = {
+  share: (fileId, username, access) =>
+    api.post('/api/permissions/share', { fileId, username, access }),
+  getFilePermissions: (fileId) =>
+    api.get(`/api/permissions/file/${fileId}`),
+  getSharedFiles: () =>
+    api.get('/api/permissions/shared'),
+  getFileOwner: (fileId) =>
+    api.get(`/api/permissions/file/${fileId}/owner`),
+  markAsViewed: (permissionId) =>
+    api.post(`/api/permissions/viewed/${permissionId}`),
 };
 
 export default api;

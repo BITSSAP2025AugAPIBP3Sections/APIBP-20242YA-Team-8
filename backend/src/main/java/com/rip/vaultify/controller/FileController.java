@@ -4,6 +4,7 @@ import com.rip.vaultify.dto.FileResponse;
 import com.rip.vaultify.model.File;
 import com.rip.vaultify.model.User;
 import com.rip.vaultify.service.FileService;
+import com.rip.vaultify.service.PermissionService;
 import com.rip.vaultify.service.UserService;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -22,10 +23,12 @@ public class FileController {
 
     private final FileService fileService;
     private final UserService userService;
+    private final PermissionService permissionService;
 
-    public FileController(FileService fileService, UserService userService) {
+    public FileController(FileService fileService, UserService userService, PermissionService permissionService) {
         this.fileService = fileService;
         this.userService = userService;
+        this.permissionService = permissionService;
     }
 
     @PostMapping("/upload")
@@ -42,7 +45,7 @@ public class FileController {
         User currentUser = userService.getCurrentUser();
         List<FileResponse> files = fileService.getFilesByFolder(folderId, currentUser.getId())
                 .stream()
-                .map(FileResponse::new)
+                .map(file -> new FileResponse(file, currentUser, permissionService))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(files);
     }
@@ -51,7 +54,7 @@ public class FileController {
     public ResponseEntity<FileResponse> getFileById(@PathVariable Long id) {
         User currentUser = userService.getCurrentUser();
         File file = fileService.getFileByIdAndUser(id, currentUser.getId());
-        return ResponseEntity.ok(new FileResponse(file));
+        return ResponseEntity.ok(new FileResponse(file, currentUser, permissionService));
     }
 
     @DeleteMapping("/{id}")
@@ -74,4 +77,5 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getOriginalName() + "\"")
                 .body(resource);
     }
+
 }
