@@ -168,4 +168,77 @@ public class PermissionController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+    
+    @GetMapping("/accepted")
+    public ResponseEntity<?> getAcceptedSharedFiles() {
+        try {
+            User currentUser = userService.getCurrentUser();
+            List<Permission> sharedPermissions = permissionService.getAcceptedSharedFilesForUser(currentUser);
+            
+            List<Map<String, Object>> sharedFiles = sharedPermissions.stream()
+                    .map(p -> {
+                        File file = p.getFile();
+                        User owner = permissionService.getFileOwner(file).orElse(null);
+                        Map<String, Object> fileInfo = new HashMap<>();
+                        fileInfo.put("permissionId", p.getId());
+                        fileInfo.put("fileId", file.getId());
+                        fileInfo.put("fileName", file.getOriginalName());
+                        fileInfo.put("fileSize", file.getSize());
+                        fileInfo.put("contentType", file.getContentType());
+                        fileInfo.put("uploadedAt", file.getUploadedAt().toString());
+                        fileInfo.put("access", p.getAccess().name());
+                        fileInfo.put("folderId", file.getFolder().getId());
+                        fileInfo.put("folderName", file.getFolder().getName());
+                        if (owner != null) {
+                            fileInfo.put("ownerUsername", owner.getUsername());
+                            fileInfo.put("ownerId", owner.getId());
+                        }
+                        return fileInfo;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+            
+            return ResponseEntity.ok(sharedFiles);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PutMapping("/{permissionId}")
+    public ResponseEntity<?> updatePermission(@PathVariable Long permissionId, @RequestBody Map<String, String> body) {
+        try {
+            User currentUser = userService.getCurrentUser();
+            
+            String accessStr = body.get("access");
+            Permission.Access newAccess;
+            try {
+                newAccess = Permission.Access.valueOf(accessStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid access type. Must be READ or WRITE"));
+            }
+            
+            Permission updated = permissionService.updatePermission(permissionId, newAccess, currentUser);
+            return ResponseEntity.ok(Map.of(
+                    "id", updated.getId(),
+                    "access", updated.getAccess().name(),
+                    "message", "Permission updated successfully"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @DeleteMapping("/{permissionId}")
+    public ResponseEntity<?> revokePermission(@PathVariable Long permissionId) {
+        try {
+            User currentUser = userService.getCurrentUser();
+            permissionService.revokePermission(permissionId, currentUser);
+            return ResponseEntity.ok(Map.of("message", "Permission revoked successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 }

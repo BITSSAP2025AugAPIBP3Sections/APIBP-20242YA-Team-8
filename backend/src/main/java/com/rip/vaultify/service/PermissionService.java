@@ -178,4 +178,64 @@ public class PermissionService {
                 .map(Permission::getUser)
                 .findFirst();
     }
+    
+    /**
+     * Get all accepted shared files for a user (viewed = true, excluding OWNER)
+     */
+    public List<Permission> getAcceptedSharedFilesForUser(User user) {
+        List<Permission> allShared = permissionRepository.findByUserExcludingAccess(user, Permission.Access.OWNER);
+        // Return only viewed (accepted) files
+        return allShared.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getViewed()))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Update permission access level (only owner can do this)
+     */
+    @Transactional
+    public Permission updatePermission(Long permissionId, Permission.Access newAccess, User owner) {
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+        
+        File file = permission.getFile();
+        
+        // Only owner can update permissions
+        if (!isOwner(file, owner)) {
+            throw new RuntimeException("Only the file owner can update permissions");
+        }
+        
+        // Cannot update to OWNER
+        if (newAccess == Permission.Access.OWNER) {
+            throw new RuntimeException("Cannot grant OWNER access");
+        }
+        
+        // Mark as unviewed so user gets notification
+        permission.setViewed(false);
+        permission.setAccess(newAccess);
+        return permissionRepository.save(permission);
+    }
+    
+    /**
+     * Revoke permission (only owner can do this)
+     */
+    @Transactional
+    public void revokePermission(Long permissionId, User owner) {
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+        
+        File file = permission.getFile();
+        
+        // Only owner can revoke permissions
+        if (!isOwner(file, owner)) {
+            throw new RuntimeException("Only the file owner can revoke permissions");
+        }
+        
+        // Cannot revoke OWNER permission
+        if (permission.getAccess() == Permission.Access.OWNER) {
+            throw new RuntimeException("Cannot revoke OWNER permission");
+        }
+        
+        permissionRepository.delete(permission);
+    }
 }

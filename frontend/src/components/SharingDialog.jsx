@@ -11,8 +11,11 @@ const SharingDialog = ({ isOpen, onClose, folderId, fileId, files = [] }) => {
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [existingPermissions, setExistingPermissions] = useState({}); // {fileId: [{username, access}]}
+  const [existingPermissions, setExistingPermissions] = useState({}); // {fileId: [{id, username, access}]}
   const [fileOwner, setFileOwner] = useState(null); // Owner username for the file
+  const [updatingPermissions, setUpdatingPermissions] = useState({}); // {permissionId: true}
+  const [revokingPermissions, setRevokingPermissions] = useState({}); // {permissionId: true}
+  const [activeInfoFileId, setActiveInfoFileId] = useState(null); // The fileId whose permissions are shown below
 
   // Use files prop if provided, otherwise use folderFiles
   const displayFiles = files.length > 0 ? files : folderFiles;
@@ -26,10 +29,12 @@ const SharingDialog = ({ isOpen, onClose, folderId, fileId, files = [] }) => {
       setAccessLevel('READ');
       setError('');
       setSuccess('');
+      setActiveInfoFileId(null);
       
       // If a specific fileId is provided, select it
       if (fileId) {
         setSelectedFiles([fileId]);
+        setActiveInfoFileId(fileId);
         fetchFilePermissions(fileId);
       }
       
@@ -39,6 +44,19 @@ const SharingDialog = ({ isOpen, onClose, folderId, fileId, files = [] }) => {
       }
     }
   }, [isOpen, fileId, folderId]);
+
+  // When selection changes at folder-level, show permissions for a single selected file
+  useEffect(() => {
+    if (!fileId) {
+      if (selectedFiles.length === 1) {
+        const fId = selectedFiles[0];
+        setActiveInfoFileId(fId);
+        fetchFilePermissions(fId);
+      } else {
+        setActiveInfoFileId(null);
+      }
+    }
+  }, [selectedFiles, fileId]);
 
   const fetchFilePermissions = async (fileId) => {
     try {
@@ -54,7 +72,7 @@ const SharingDialog = ({ isOpen, onClose, folderId, fileId, files = [] }) => {
       // Filter out OWNER permissions and group by fileId
       const filePerms = permissions
         .filter(p => p.access !== 'OWNER')
-        .map(p => ({ username: p.username, access: p.access }));
+        .map(p => ({ id: p.id, username: p.username, access: p.access }));
       setExistingPermissions(prev => ({ ...prev, [fileId]: filePerms }));
     } catch (err) {
       console.error('Failed to fetch file permissions:', err);
@@ -99,6 +117,50 @@ const SharingDialog = ({ isOpen, onClose, folderId, fileId, files = [] }) => {
         ? prev.filter((id) => id !== fileId)
         : [...prev, fileId]
     );
+  };
+
+  const handleUpdatePermission = async (permissionId, newAccess) => {
+    setUpdatingPermissions(prev => ({ ...prev, [permissionId]: true }));
+    try {
+      await permissionAPI.updatePermission(permissionId, newAccess);
+      setSuccess('Permission updated successfully');
+      // Refresh permissions
+      if (activeInfoFileId) {
+        await fetchFilePermissions(activeInfoFileId);
+      }
+      // Refresh after a delay to show success message
+      setTimeout(() => {
+        setSuccess('');
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update permission');
+    } finally {
+      setUpdatingPermissions(prev => ({ ...prev, [permissionId]: false }));
+    }
+  };
+
+  const handleRevokePermission = async (permissionId) => {
+    if (!window.confirm('Are you sure you want to revoke this user\'s access? They will be notified.')) {
+      return;
+    }
+    
+    setRevokingPermissions(prev => ({ ...prev, [permissionId]: true }));
+    try {
+      await permissionAPI.revokePermission(permissionId);
+      setSuccess('Permission revoked successfully');
+      // Refresh permissions
+      if (activeInfoFileId) {
+        await fetchFilePermissions(activeInfoFileId);
+      }
+      // Refresh after a delay to show success message
+      setTimeout(() => {
+        setSuccess('');
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to revoke permission');
+    } finally {
+      setRevokingPermissions(prev => ({ ...prev, [permissionId]: false }));
+    }
   };
 
   const handleShare = async () => {
@@ -151,10 +213,10 @@ const SharingDialog = ({ isOpen, onClose, folderId, fileId, files = [] }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w_full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-800">Share Files</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text_gray-600 mt-1">
             Select users and files to share from this folder
           </p>
         </div>
@@ -328,19 +390,35 @@ const SharingDialog = ({ isOpen, onClose, folderId, fileId, files = [] }) => {
             </div>
           </div>
           
-          {/* Show existing shares info */}
-          {fileId && existingPermissions[fileId] && existingPermissions[fileId].length > 0 && (
+          {/* Show existing shares info with management */}
+          {activeInfoFileId && existingPermissions[activeInfoFileId] && existingPermissions[activeInfoFileId].length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded p-4">
-              <h4 className="text-sm font-semibold text-blue-900 mb-2">
+              <h4 className="text-sm font-semibold text-blue-900 mb-3">
                 Currently Shared With:
               </h4>
-              <div className="space-y-1">
-                {existingPermissions[fileId].map((perm, idx) => (
-                  <div key={idx} className="text-sm text-blue-800">
-                    <span className="font-medium">{perm.username}</span>
-                    <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                      {perm.access}
-                    </span>
+              <div className="space-y-2">
+                {existingPermissions[activeInfoFileId].map((perm) => (
+                  <div key={perm.id} className="flex items-center justify-between bg-white rounded p-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-800">{perm.username}</span>
+                      <select
+                        value={perm.access}
+                        onChange={(e) => handleUpdatePermission(perm.id, e.target.value)}
+                        disabled={updatingPermissions[perm.id]}
+                        className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                      >
+                        <option value="READ">READ</option>
+                        <option value="WRITE">WRITE</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => handleRevokePermission(perm.id)}
+                      disabled={revokingPermissions[perm.id]}
+                      className="text-xs text-red-600 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
+                      title="Revoke access"
+                    >
+                      {revokingPermissions[perm.id] ? 'Revoking...' : 'Revoke'}
+                    </button>
                   </div>
                 ))}
               </div>

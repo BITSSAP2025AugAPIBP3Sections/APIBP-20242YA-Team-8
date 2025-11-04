@@ -29,7 +29,6 @@ const SharedFilesNotification = ({ isOpen, onClose, onFileAccepted }) => {
     }
   };
 
-
   const handleAcceptFile = async (file) => {
     if (!file) return;
 
@@ -43,9 +42,9 @@ const SharedFilesNotification = ({ isOpen, onClose, onFileAccepted }) => {
       // Remove from notification list
       setSharedFiles(prev => prev.filter(f => f.permissionId !== file.permissionId));
       
-      // Navigate to the folder where the file exists (original owner's folder)
-      // File stays in original location, accessed via permissions - no copying
-      navigate(`/folders/${file.folderId}/files`);
+    // Navigate to Shared tab on Folders page
+    // navigate('/?tab=shared');
+    // setActiveTab('shared');
       
       // Close the notification dialog
       onClose();
@@ -147,7 +146,7 @@ const SharedFilesNotification = ({ isOpen, onClose, onFileAccepted }) => {
                         onClick={() => handleAcceptFile(file)}
                         className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
                       >
-                        View File
+                        Accept
                       </button>
                       <button
                         onClick={() => handleRejectFile(file.permissionId)}

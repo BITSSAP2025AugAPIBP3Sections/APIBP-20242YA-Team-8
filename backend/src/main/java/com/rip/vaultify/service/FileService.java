@@ -155,5 +155,53 @@ public class FileService {
         Path filePath = Paths.get(file.getFilePath());
         return Files.readAllBytes(filePath);
     }
+    
+    /**
+     * Copy a shared file to user's folder (only for WRITE users)
+     * This creates a physical copy of the file in the user's folder
+     */
+    @Transactional
+    public File copySharedFileToFolder(Long fileId, Long targetFolderId, Long userId) throws IOException {
+        // Get the source file (check WRITE permission)
+        File sourceFile = getFileByIdForWrite(fileId, userId);
+        
+        // Validate target folder exists and belongs to user
+        Folder targetFolder = folderRepository.findById(targetFolderId)
+                .orElseThrow(() -> new RuntimeException("Target folder not found with id: " + targetFolderId));
+        
+        if (!targetFolder.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Target folder does not belong to user");
+        }
+        
+        // Create upload directory if not exists
+        Path uploadPath = Paths.get(uploadDirectory);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+        
+        // Copy physical file
+        Path sourceFilePath = Paths.get(sourceFile.getFilePath());
+        String newStoredName = UUID.randomUUID().toString() + "_" + sourceFile.getOriginalName();
+        Path newFilePath = uploadPath.resolve(newStoredName);
+        Files.copy(sourceFilePath, newFilePath, StandardCopyOption.REPLACE_EXISTING);
+        
+        // Create new file entity in target folder
+        File newFile = new File(
+                sourceFile.getOriginalName(),
+                newStoredName,
+                sourceFile.getContentType(),
+                sourceFile.getSize(),
+                newFilePath.toString(),
+                targetFolder,
+                targetFolder.getUser() // The user who copied it
+        );
+        
+        File savedFile = fileRepository.save(newFile);
+        
+        // Create OWNER permission for the user who copied it
+        permissionService.createOwnerPermission(savedFile, targetFolder.getUser());
+        
+        return savedFile;
+    }
 
 }

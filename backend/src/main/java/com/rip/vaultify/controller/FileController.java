@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -64,18 +65,58 @@ public class FileController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/download")
-    public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable Long id) throws IOException {
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<ByteArrayResource> previewFile(@PathVariable Long id) throws IOException {
         User currentUser = userService.getCurrentUser();
+        // getFileByIdAndUser already checks READ permission
         File file = fileService.getFileByIdAndUser(id, currentUser.getId());
         byte[] data = fileService.downloadFile(id, currentUser.getId());
 
         ByteArrayResource resource = new ByteArrayResource(data);
 
+        // Preview: no attachment header, allows READ users
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.getContentType()))
+                .body(resource);
+    }
+    
+    @GetMapping("/{id}/download")
+    public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable Long id) throws IOException {
+        User currentUser = userService.getCurrentUser();
+        File file = fileService.getFileByIdAndUser(id, currentUser.getId());
+        
+        // Check if user has WRITE permission (required for download)
+        User user = new User();
+        user.setId(currentUser.getId());
+        if (!permissionService.isOwner(file, user) && !permissionService.hasWritePermission(file, user)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .build();
+        }
+        
+        byte[] data = fileService.downloadFile(id, currentUser.getId());
+
+        ByteArrayResource resource = new ByteArrayResource(data);
+
+        // Download: with attachment header, requires WRITE permission
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(file.getContentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getOriginalName() + "\"")
                 .body(resource);
+    }
+    
+    @PostMapping("/copy")
+    public ResponseEntity<FileResponse> copySharedFile(
+            @RequestBody Map<String, Long> body) throws IOException {
+        User currentUser = userService.getCurrentUser();
+        Long fileId = body.get("fileId");
+        Long folderId = body.get("folderId");
+        
+        if (fileId == null || folderId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        File copiedFile = fileService.copySharedFileToFolder(fileId, folderId, currentUser.getId());
+        return ResponseEntity.ok(new FileResponse(copiedFile, currentUser, permissionService));
     }
 
 }

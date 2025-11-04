@@ -67,6 +67,9 @@ export const fileAPI = {
   getById: (id) => api.get(`/api/files/${id}`),
   delete: (id) => api.delete(`/api/files/${id}`),
   download: (id) => api.get(`/api/files/${id}/download`, { responseType: 'blob' }),
+  copySharedFile: (fileId, folderId) =>
+    api.post('/api/files/copy', { fileId, folderId }),
+  preview: (id) => api.get(`/api/files/${id}/preview`, { responseType: 'blob' }),
 };
 
 export const userAPI = {
@@ -80,10 +83,16 @@ export const permissionAPI = {
     api.get(`/api/permissions/file/${fileId}`),
   getSharedFiles: () =>
     api.get('/api/permissions/shared'),
+  getAcceptedSharedFiles: () =>
+    api.get('/api/permissions/accepted'),
   getFileOwner: (fileId) =>
     api.get(`/api/permissions/file/${fileId}/owner`),
   markAsViewed: (permissionId) =>
     api.post(`/api/permissions/viewed/${permissionId}`),
+  updatePermission: (permissionId, access) =>
+    api.put(`/api/permissions/${permissionId}`, { access }),
+  revokePermission: (permissionId) =>
+    api.delete(`/api/permissions/${permissionId}`),
 };
 
 export default api;
