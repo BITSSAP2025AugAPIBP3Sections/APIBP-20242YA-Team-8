@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "400",
+    "message": "Invalid value: [operation.abapResponseTime.maximum, operation.abapResponseTime.average, operation.abapInstanceHeartbeat.criticalStatus.maximum, operation.abapSystemHeartbeat.criticalStatus.maximum, operation.abapApplicationLog.count, operation.abapDump.count, operation.abapSystemLog.count, operation.abapBatchJobsAborted.count]",
+    "target": "query/filters/0/filterValues"
+  }
+}

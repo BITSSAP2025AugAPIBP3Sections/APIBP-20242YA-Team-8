@@ -1,0 +1,212 @@
+{
+  "name": "RDP - Endpoints",
+  "version": "1",
+  "items": [
+    {
+      "type": "http",
+      "name": "RDP - Logical Systems",
+      "filename": "RDP - Logical Systems.bru",
+      "seq": 5,
+      "request": {
+        "url": "https://rdp-dashboard-srv-GMKO77GFRTJF57UL.cert.cfapps.eu10-004.hana.ondemand.com/odata/v4/DashboardService/LogicalSystems",
+        "method": "GET",
+        "headers": [
+          {
+            "name": "Dwc-Tenant",
+            "value": "f1304d48-c8f0-4179-aee1-8e20722b1258",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Product-Configuration",
+            "value": "eyJmZWF0dXJlcyI6W3sibmFtZSI6InJkcF9Mb2dpY2FsU3lzdGVtc0xpc3RfdG9nZ2xlIiwiZW5hYmxlZCI6dHJ1ZX1dfQ==",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Xsuaa-Xsappname",
+            "value": "sapcloudalm!b16907",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Scopes",
+            "value": "sapcloudalm!b16907.ops-rcc-operations-display-ui",
+            "enabled": true
+          }
+        ],
+        "params": [],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "none"
+        }
+      }
+    },
+    {
+      "type": "http",
+      "name": "RDP - Metadata",
+      "filename": "RDP - Metadata.bru",
+      "seq": 3,
+      "request": {
+        "url": "https://rdp-dashboard-srv-GMKO77GFRTJF57UL.cert.cfapps.eu10-004.hana.ondemand.com/odata/v4/DashboardService/$metadata",
+        "method": "GET",
+        "headers": [
+          {
+            "name": "",
+            "value": "",
+            "enabled": true
+          }
+        ],
+        "params": [],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "none"
+        }
+      }
+    },
+    {
+      "type": "http",
+      "name": "RDP - SystemMetrics",
+      "filename": "RDP - SystemMetrics.bru",
+      "seq": 3,
+      "request": {
+        "url": "https://rdp-dashboard-srv-GMKO77GFRTJF57UL.cert.cfapps.eu10-004.hana.ondemand.com/odata/v4/DashboardService/SystemMetrics",
+        "method": "GET",
+        "headers": [
+          {
+            "name": "Dwc-Tenant",
+            "value": "f1304d48-c8f0-4179-aee1-8e20722b1258",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Xsuaa-Xsappname",
+            "value": "sapcloudalm!b16907",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Scopes",
+            "value": "sapcloudalm!b16907.ops-rcc-operations-display-ui",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Product-Configuration",
+            "value": "eyJmZWF0dXJlcyI6W3sibmFtZSI6InJkcF9Mb2dpY2FsU3lzdGVtc0xpc3RfdG9nZ2xlIiwiZW5hYmxlZCI6dHJ1ZX1dfQ==",
+            "enabled": false
+          }
+        ],
+        "params": [],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "inherit"
+        }
+      }
+    },
+    {
+      "type": "http",
+      "name": "RDP - getSystemMetrics",
+      "filename": "RDP - getSystemMetrics.bru",
+      "seq": 5,
+      "request": {
+        "url": "https://rdp-dashboard-srv-GMKO77GFRTJF57UL.cert.cfapps.eu10-004.hana.ondemand.com/odata/v4/DashboardService/getSystemMetrics",
+        "method": "POST",
+        "headers": [
+          {
+            "name": "Dwc-Tenant",
+            "value": "f1304d48-c8f0-4179-aee1-8e20722b1258",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Xsuaa-Xsappname",
+            "value": "sapcloudalm!b164821",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Scopes",
+            "value": "sapcloudalm!b164821.ops-rcc-operations-display-ui",
+            "enabled": true
+          },
+          {
+            "name": "Dwc-Subdomain",
+            "value": "calm-test-eu10-004-relctestfeature-1stabledata",
+            "enabled": true
+          }
+        ],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"query\": {\n    \"period\": \"L30D\",\n    \"resolution\": \"1D\",\n    \"filters\": [\n      {\n        \"field\": \"code\",\n        \"filterValues\": [\n          \"operation.abapResponseTime.maximum\",\n          \"operation.abapResponseTime.average\",\n          \"operation.abapInstanceHeartbeat.criticalStatus.maximum\",\n          \"operation.abapSystemHeartbeat.criticalStatus.maximum\",\n          \"operation.abapApplicationLog.count\",\n          \"operation.abapDump.count\",\n          \"operation.abapSystemLog.count\",\n          \"operation.abapBatchJobsAborted.count\"\n        ],\n        \"subFiltersCondition\": \"or\",\n        \"subFilters\": [\n          {\n            \"subFiltersCondition\": \"and\",\n            \"subFilters\": [\n              {\n                \"field\": \"systemNumber\",\n                \"filterValues\": [\n                  \"000000000850263180\"\n                ]\n              },\n              {\n                \"field\": \"label\",\n                \"filterValues\": [\n                  \"910\"\n                ]\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  },\n  \"dimensions\": [\n    {\n      \"field\": \"timestamp\"\n    }\n  ],\n  \"measure\": {\n    \"field\": \"code\",\n    \"orderBy\": \"filterValues\",\n    \"aggregation\": \"newest\",\n    \"rounding\": {\n      \"roundingMode\": \"halfUp\",\n      \"scale\": 1\n    }\n  },\n  \"summaries\": [\n    {\n      \"reference\": \"lastDataPoint\",\n      \"field\": \"code\",\n      \"aggregation\": \"last\",\n      \"rounding\": {\n        \"roundingMode\": \"halfUp\",\n        \"scale\": 1\n      }\n    },\n    {\n      \"reference\": \"upDownTrendCalculator\",\n      \"field\": \"code\",\n      \"aggregation\": \"diff(L1,L0)\",\n      \"rounding\": {\n        \"roundingMode\": \"halfUp\",\n        \"scale\": 1\n      }\n    },\n    {\n      \"reference\": \"l30dTrendCalculator\",\n      \"field\": \"code\",\n      \"aggregation\": \"trend(avg)\",\n      \"rounding\": {\n        \"roundingMode\": \"halfUp\",\n        \"scale\": 1\n      }\n    }\n  ]\n}",
+          "text": "--batch_id-1761671828428-361\nContent-Type:application/http\nContent-Transfer-Encoding:binary\n\nPOST getSystemMetrics HTTP/1.1\nAccept:application/json;odata.metadata=minimal;IEEE754Compatible=true\nAccept-Language:en-US\nX-CSRF-Token:lxOcSPry-gQWnhiI1Obdwy51lCaXKNTvurrY\nContent-Type:application/json;charset=UTF-8;IEEE754Compatible=true\n\n{\"query\":{\"period\":\"L30D\",\"resolution\":\"1D\",\"filters\":[{\"field\":\"code\",\"filterValues\":[\"operation.connectivity\",\"operation.exception\",\"operation.backgroundProcessing\",\"operation.performance\",\"operation.systemHealth\"],\"subFiltersCondition\":\"or\",\"subFilters\":[{\"subFiltersCondition\":\"and\",\"subFilters\":[{\"field\":\"systemNumber\",\"filterValues\":[\"850263180\"]},{\"field\":\"label\",\"filterValues\":[\"910\"]}]}]}]},\"dimensions\":[{\"field\":\"timestamp\"}],\"measure\":{\"field\":\"code\",\"orderBy\":\"filterValues\",\"aggregation\":\"avg\",\"rounding\":{\"roundingMode\":\"halfUp\",\"scale\":1}},\"summaries\":[{\"reference\":\"lastDataPoint\",\"field\":\"code\",\"aggregation\":\"last\",\"rounding\":{\"roundingMode\":\"halfUp\",\"scale\":1}},{\"reference\":\"upDownTrendCalculator\",\"field\":\"code\",\"aggregation\":\"diff(L1,L0)\",\"rounding\":{\"roundingMode\":\"halfUp\",\"scale\":1}},{\"reference\":\"l30dTrendCalculator\",\"field\":\"code\",\"aggregation\":\"trend(avg)\",\"rounding\":{\"roundingMode\":\"halfUp\",\"scale\":1}}]}\n--batch_id-1761671828428-361--\nGroup ID: $auto",
+          "formUrlEncoded": [],
+          "multipartForm": [
+            {
+              "type": "text",
+              "name": "",
+              "value": "",
+              "enabled": true
+            }
+          ],
+          "file": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "inherit"
+        }
+      }
+    }
+  ],
+  "environments": [],
+  "brunoConfig": {
+    "version": "1",
+    "name": "RDP - Endpoints",
+    "type": "collection",
+    "ignore": [
+      "node_modules",
+      ".git"
+    ],
+    "size": 0.007119178771972656,
+    "filesCount": 4,
+    "clientCertificates": {
+      "enabled": true,
+      "certs": [
+        {
+          "domain": "*",
+          "type": "cert",
+          "certFilePath": "../../Cert/devinstance.crt",
+          "keyFilePath": "../../Cert/devinstance.key",
+          "passphrase": ""
+        }
+      ]
+    }
+  }
+}
