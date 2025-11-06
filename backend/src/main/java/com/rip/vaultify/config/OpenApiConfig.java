@@ -15,8 +15,7 @@ import org.springframework.context.annotation.Configuration;
                 title = "Vaultify API",
                 version = "v1",
                 description = "REST API for file storage, sharing permissions, and version control.",
-                contact = @Contact(name = "Vaultify"),
-                license = @License(name = "MIT")
+                contact = @Contact(name = "Vaultify")
         ),
         security = {@SecurityRequirement(name = "bearerAuth")}
 )

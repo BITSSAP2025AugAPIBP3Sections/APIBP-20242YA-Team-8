@@ -40,6 +40,10 @@ mvn spring-boot:run
 
 The backend will start on `http://localhost:8080`
 
+**API Documentation (Swagger UI)**: Once the backend is running, you can access the interactive API documentation at:
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
 #### 2. Start the Frontend
 
 ```bash
@@ -75,6 +79,7 @@ Open your browser and navigate to `http://localhost:5173`
 
 ## Documentation
 
+- **API Documentation**: Interactive Swagger UI available at `http://localhost:8080/swagger-ui/index.html` when the backend is running. You can test all endpoints directly from the UI. To authenticate, click the "Authorize" button and enter your JWT token in the format: `Bearer <your_token>`
 - **Frontend Setup**: See `FRONTEND_SETUP.md` for detailed frontend documentation
 - **Backend Endpoints**: See `BACKEND_ENDPOINTS_NEEDED.md` for required backend implementation
 
@@ -83,6 +88,7 @@ Open your browser and navigate to `http://localhost:5173`
 ### Backend
 - Spring Boot 3.5.6
 - Spring Security with JWT
+- Springdoc OpenAPI (Swagger UI)
 - H2 Database (in-memory)
 - Maven
 
