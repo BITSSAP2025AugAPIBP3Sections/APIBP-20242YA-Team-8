@@ -38,7 +38,7 @@ public class PermissionService {
             throw new RuntimeException("Only the file owner can share this file");
         }
         
-        // Cannot grant OWNER access through sharing (only file creator gets OWNER)
+        // Cannot grant OWNER access through sharing (only the file creator gets OWNER)
         if (access == Permission.Access.OWNER) {
             throw new RuntimeException("Cannot grant OWNER access. Only the file creator is the owner.");
         }
@@ -85,6 +85,10 @@ public class PermissionService {
      * Check if a user is the owner of a file
      */
     public boolean isOwner(File file, User user) {
+        // Treat the file creator as owner (defensive in case owner permission row is missing)
+        if (file.getUser() != null && file.getUser().getId() != null && file.getUser().getId().equals(user.getId())) {
+            return true;
+        }
         Optional<Permission> permission = permissionRepository.findByFileAndUser(file, user);
         return permission.isPresent() && permission.get().getAccess() == Permission.Access.OWNER;
     }

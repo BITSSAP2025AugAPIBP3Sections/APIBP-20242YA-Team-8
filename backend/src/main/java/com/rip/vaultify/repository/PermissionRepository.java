@@ -19,4 +19,6 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
     
     @Query("SELECT p FROM Permission p WHERE p.user = :user AND p.access != :access")
     List<Permission> findByUserExcludingAccess(@Param("user") User user, @Param("access") Permission.Access access);
+
+    void deleteByFile(File file);
 }

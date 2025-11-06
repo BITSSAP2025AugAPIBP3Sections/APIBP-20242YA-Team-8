@@ -1,0 +1,79 @@
+{
+  "value": [
+    {
+      "lmsID": "0f580353-4239-4d62-98c4-d5c6469f6bed",
+      "technicalSystemLmsID": "c1f398e8-7ac6-4565-af5a-d8bea8a4e2cd",
+      "systemNumber": "000000000342334234",
+      "role": "PROD",
+      "clientNumber": "100",
+      "systemDescription": "S4H~100",
+      "systemName": "S4H.100",
+      "installationNumber": "9900000001",
+      "erpCustomerID": "0002740472",
+      "customerName": null,
+      "objectType": "LogicalSystem",
+      "serviceTypeID": "SAP_S4HANA_OP",
+      "systemType": "ABAP"
+    },
+    {
+      "lmsID": "b3d1ccef-21ef-4b2e-bc03-8cd8696cee35",
+      "technicalSystemLmsID": "0acb6b1c-f945-4bf0-b05c-cbbc79016017",
+      "systemNumber": "000000000850779797",
+      "role": "PROD",
+      "clientNumber": "200",
+      "systemDescription": "E8P (E8P200)",
+      "systemName": "E8P.200",
+      "installationNumber": "0020000031",
+      "erpCustomerID": "0009998887",
+      "customerName": "SAP Cloud ALM",
+      "objectType": "LogicalSystem",
+      "serviceTypeID": "SAP_S4HANA_OP",
+      "systemType": "ABAP"
+    },
+    {
+      "lmsID": "b3d1ccef-21ef-4b2e-bc03-8cd8696cee35",
+      "technicalSystemLmsID": "0acb6b1c-f945-4bf0-b05c-cbbc79016017",
+      "systemNumber": "000000000850779797",
+      "role": "PROD",
+      "clientNumber": "200",
+      "systemDescription": "E8P (E8P200)",
+      "systemName": "E8P.200",
+      "installationNumber": "0020000031",
+      "erpCustomerID": "0002740472",
+      "customerName": "SAP Cloud ALM",
+      "objectType": "LogicalSystem",
+      "serviceTypeID": "SAP_S4HANA_OP",
+      "systemType": "ABAP"
+    },
+    {
+      "lmsID": "dbcb78f3-f368-4365-8dc4-5878ff47343e",
+      "technicalSystemLmsID": "f18444cd-492a-435c-afb2-0df571d8786a",
+      "systemNumber": "000000000850263180",
+      "role": "PROD",
+      "clientNumber": "910",
+      "systemDescription": "CCQ (CCQ910)",
+      "systemName": "CCQ.910",
+      "installationNumber": "9900000003",
+      "erpCustomerID": "0002740472",
+      "customerName": "SAP Cloud ALM",
+      "objectType": "LogicalSystem",
+      "serviceTypeID": "SAP_S4HANA_OP",
+      "systemType": "ABAP"
+    },
+    {
+      "lmsID": "f395d387-4c10-4839-b13d-165b665d6160",
+      "technicalSystemLmsID": "c1f398e8-7ac6-4565-af5a-d8bea8a4e2cd",
+      "systemNumber": "000000000342334234",
+      "role": "PROD",
+      "clientNumber": "200",
+      "systemDescription": "S4H~200",
+      "systemName": "S4H.200",
+      "installationNumber": "9900000001",
+      "erpCustomerID": "0002740472",
+      "customerName": null,
+      "objectType": "LogicalSystem",
+      "serviceTypeID": "SAP_S4HANA_OP",
+      "systemType": "ABAP"
+    }
+  ]
+}

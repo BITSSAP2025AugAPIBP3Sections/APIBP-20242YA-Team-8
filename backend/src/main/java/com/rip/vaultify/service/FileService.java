@@ -5,6 +5,7 @@ import com.rip.vaultify.model.Folder;
 import com.rip.vaultify.model.User;
 import com.rip.vaultify.repository.FileRepository;
 import com.rip.vaultify.repository.FolderRepository;
+import com.rip.vaultify.repository.PermissionRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,14 +25,16 @@ public class FileService {
     private final FileRepository fileRepository;
     private final FolderRepository folderRepository;
     private final PermissionService permissionService;
+    private final PermissionRepository permissionRepository;
 
     @Value("${file.upload.directory:uploads}")
     private String uploadDirectory;
 
-    public FileService(FileRepository fileRepository, FolderRepository folderRepository, PermissionService permissionService) {
+    public FileService(FileRepository fileRepository, FolderRepository folderRepository, PermissionService permissionService, PermissionRepository permissionRepository) {
         this.fileRepository = fileRepository;
         this.folderRepository = folderRepository;
         this.permissionService = permissionService;
+        this.permissionRepository = permissionRepository;
     }
 
     @Transactional
@@ -144,6 +147,9 @@ public class FileService {
         if (Files.exists(filePath)) {
             Files.delete(filePath);
         }
+
+        // Delete any permissions referencing this file first to satisfy FK constraints
+        permissionRepository.deleteByFile(file);
 
         // Delete from database
         fileRepository.delete(file);
