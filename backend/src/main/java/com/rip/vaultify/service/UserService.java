@@ -9,6 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -52,5 +53,9 @@ public class UserService {
             throw new RuntimeException("User not found: " + username);
         }
         return user;
+    }
+
+    public List<User> getAllUsers() {
+        return repo.findAll();
     }
 }

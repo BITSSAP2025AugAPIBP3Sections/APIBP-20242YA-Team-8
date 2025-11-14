@@ -81,4 +81,34 @@ public class FolderService {
         folder.getChildren().size(); // initialize lazy-loaded children
         return folder;
     }
+
+    public List<Folder> getAllFolders() {
+        return folderRepository.findAll();
+    }
+
+    public Folder getFolderById(Long id) {
+        return folderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Folder not found with id: " + id));
+    }
+
+    public List<Folder> getRootFolders() {
+        return folderRepository.findByParentId(null);
+    }
+
+    public Folder createFolder(String name, Long parentId) {
+        // This is a simplified version for GraphQL - in a real app you'd get current user
+        User currentUser = new User(); // This would come from security context
+        return createFolder(name, parentId, currentUser);
+    }
+
+    public Folder updateFolder(Long id, String name) {
+        Folder folder = getFolderById(id);
+        folder.setName(name);
+        return folderRepository.save(folder);
+    }
+
+    public void deleteFolder(Long id) {
+        Folder folder = getFolderById(id);
+        folderRepository.delete(folder);
+    }
 }

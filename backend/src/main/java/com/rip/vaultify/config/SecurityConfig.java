@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // Disable CSRF for H2 and others
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**", "/auth/**")
+                        .ignoringRequestMatchers("/h2-console/**", "/auth/**", "/graphql", "/graphiql")
                         .disable()
                 )
                 // Allow frames (needed for H2 UI)
@@ -46,7 +46,8 @@ public class SecurityConfig {
                 )
                 // Define route permissions
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/h2-console/**").permitAll()
+                        .requestMatchers("/auth/**", "/h2-console/**", "/graphiql", "/graphiql/**", 
+                                       "/webjars/**", "/static/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Stateless session management for JWT

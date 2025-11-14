@@ -210,4 +210,16 @@ public class FileService {
         return savedFile;
     }
 
+    public List<File> getAllFiles() {
+        return fileRepository.findAll();
+    }
+
+    public File getFileById(Long id) {
+        return fileRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("File not found with id: " + id));
+    }
+
+    public List<File> getFilesByFolderId(Long folderId) {
+        return fileRepository.findByFolderId(folderId);
+    }
 }
