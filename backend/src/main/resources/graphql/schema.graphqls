@@ -1,0 +1,109 @@
+# GraphQL Schema for Vaultify API
+
+# User type definition
+type User {
+    id: ID!
+    username: String!
+    roles: [String!]!
+}
+
+# File type definition
+type File {
+    id: ID!
+    originalName: String!
+    storedName: String!
+    contentType: String!
+    size: Long!
+    filePath: String!
+    uploadedAt: String!
+    folder: Folder!
+    user: User!
+}
+
+# Folder type definition
+type Folder {
+    id: ID!
+    name: String!
+    parent: Folder
+    children: [Folder!]!
+    files: [File!]!
+    user: User!
+}
+
+# Permission type definition
+type Permission {
+    id: ID!
+    file: File!
+    user: User!
+    access: Access!
+    viewed: Boolean!
+}
+
+# Access enum
+enum Access {
+    READ
+    WRITE
+    OWNER
+}
+
+# Input types for mutations
+input CreateFolderInput {
+    name: String!
+    parentId: ID
+}
+
+input ShareFileInput {
+    fileId: ID!
+    username: String!
+    access: Access!
+}
+
+input UpdatePermissionInput {
+    access: Access!
+}
+
+# Custom scalar types
+scalar Long
+
+# Query type - all read operations
+type Query {
+    # User queries
+    users: [User!]!
+    currentUser: User
+    
+    # File queries
+    files: [File!]!
+    file(id: ID!): File
+    filesByFolder(folderId: ID!): [File!]!
+    
+    # Folder queries
+    folders: [Folder!]!
+    folder(id: ID!): Folder
+    rootFolders: [Folder!]!
+    
+    # Permission queries
+    permissions: [Permission!]!
+    filePermissions(fileId: ID!): [Permission!]!
+    userPermissions: [Permission!]!
+    sharedFiles: [File!]!
+}
+
+# Mutation type - all write operations
+type Mutation {
+    # Folder operations
+    createFolder(input: CreateFolderInput!): Folder!
+    updateFolder(id: ID!, name: String!): Folder!
+    deleteFolder(id: ID!): Boolean!
+    
+    # Permission operations
+    shareFile(input: ShareFileInput!): Permission!
+    updatePermission(id: ID!, input: UpdatePermissionInput!): Permission!
+    removePermission(id: ID!): Boolean!
+    markAsViewed(permissionId: ID!): Permission!
+}
+
+# Subscription type - real-time updates (basic structure)
+type Subscription {
+    fileShared: Permission!
+    permissionUpdated: Permission!
+}

@@ -19,6 +19,9 @@ public class PermissionService {
 
     @Autowired
     private PermissionRepository permissionRepository;
+    
+    @Autowired
+    private UserService userService;
 
     /**
      * Share a file with a user. Only the owner can share files.
@@ -241,5 +244,55 @@ public class PermissionService {
         }
         
         permissionRepository.delete(permission);
+    }
+
+    public List<Permission> getAllPermissions() {
+        return permissionRepository.findAll();
+    }
+
+    public List<Permission> getPermissionsByFileId(Long fileId) {
+        File file = new File();
+        file.setId(fileId);
+        return permissionRepository.findByFile(file);
+    }
+
+    public List<Permission> getCurrentUserPermissions() {
+        User currentUser = userService.getCurrentUser();
+        return permissionRepository.findByUser(currentUser);
+    }
+
+    public List<File> getSharedFilesForCurrentUser() {
+        User currentUser = userService.getCurrentUser();
+        List<Permission> sharedPermissions = permissionRepository.findByUserExcludingAccess(currentUser, Permission.Access.OWNER);
+        return sharedPermissions.stream()
+                .map(Permission::getFile)
+                .collect(Collectors.toList());
+    }
+
+    public Permission shareFile(Long fileId, String username, Permission.Access access) {
+        // This is a simplified version - in real implementation you'd need to:
+        // 1. Get file by ID
+        // 2. Get user by username
+        // 3. Get current user from security context
+        // 4. Call the existing share method
+        throw new RuntimeException("Method needs proper implementation with user context");
+    }
+
+    public Permission updatePermission(Long id, Permission.Access access) {
+        // This is a simplified version - in real implementation you'd get current user
+        throw new RuntimeException("Method needs proper implementation with user context");
+    }
+
+    public void removePermission(Long id) {
+        Permission permission = permissionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+        permissionRepository.delete(permission);
+    }
+
+    public Permission markAsViewed(Long permissionId) {
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+        permission.setViewed(true);
+        return permissionRepository.save(permission);
     }
 }
