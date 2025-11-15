@@ -38,22 +38,22 @@ public class SecurityConfig {
                 // Disable CSRF for H2 and others
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/h2-console/**", "/auth/**", "/graphql", "/graphiql")
-                        .disable()
-                )
+                        .disable())
                 // Allow frames (needed for H2 UI)
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.disable())
-                )
+                        .frameOptions(frame -> frame.disable()))
                 // Define route permissions
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/h2-console/**", "/graphiql", "/graphiql/**", 
-                                       "/webjars/**", "/static/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers("/auth/**", "/h2-console/**", "/graphiql", "/graphiql/**",
+                                "/webjars/**", "/static/**", "/css/**", "/js/**", "/images/**", "/favicon.ico",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html")
+                        .permitAll()
+                        .anyRequest().authenticated())
                 // Stateless session management for JWT
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
