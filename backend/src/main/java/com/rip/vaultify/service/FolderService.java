@@ -91,8 +91,8 @@ public class FolderService {
                 .orElseThrow(() -> new RuntimeException("Folder not found with id: " + id));
     }
 
-    public List<Folder> getRootFolders() {
-        return folderRepository.findByParentId(null);
+    public List<Folder> getRootFolders(Long userId) {
+        return folderRepository.findByUserIdAndParentIdIsNull(userId);
     }
 
     public Folder createFolder(String name, Long parentId) {

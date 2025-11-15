@@ -72,7 +72,8 @@ public class GraphQLController {
 
     @QueryMapping
     public List<Folder> rootFolders() {
-        return folderService.getRootFolders();
+        User currentUser = userService.getCurrentUser();
+        return folderService.getRootFolders(currentUser.getId());
     }
 
     // Permission Queries

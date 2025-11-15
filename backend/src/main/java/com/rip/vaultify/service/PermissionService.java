@@ -19,6 +19,9 @@ public class PermissionService {
 
     @Autowired
     private PermissionRepository permissionRepository;
+    
+    @Autowired
+    private UserService userService;
 
     /**
      * Share a file with a user. Only the owner can share files.
@@ -254,15 +257,16 @@ public class PermissionService {
     }
 
     public List<Permission> getCurrentUserPermissions() {
-        // This would typically get the current user from security context
-        // For now, return empty list - in real implementation you'd get current user
-        return List.of();
+        User currentUser = userService.getCurrentUser();
+        return permissionRepository.findByUser(currentUser);
     }
 
     public List<File> getSharedFilesForCurrentUser() {
-        // This would typically get the current user from security context
-        // For now, return empty list - in real implementation you'd get current user's shared files
-        return List.of();
+        User currentUser = userService.getCurrentUser();
+        List<Permission> sharedPermissions = permissionRepository.findByUserExcludingAccess(currentUser, Permission.Access.OWNER);
+        return sharedPermissions.stream()
+                .map(Permission::getFile)
+                .collect(Collectors.toList());
     }
 
     public Permission shareFile(Long fileId, String username, Permission.Access access) {
