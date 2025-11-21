@@ -1,37 +1,71 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { fileAPI, folderAPI } from '../services/api';
+import { useFolder, useCreateFolder, useDeleteFolder } from '../hooks/useFolders';
+import { useFilesByFolder, useDownloadFile, useDeleteFile, useUploadFile } from '../hooks/useFiles';
+import { folderAPI } from '../services/api';
 import SharingDialog from '../components/SharingDialog';
 import FileCard from '../components/FileCard';
 
 const Files = () => {
   const { folderId } = useParams();
-  const [files, setFiles] = useState([]);
-  const [subfolders, setSubfolders] = useState([]);
-  const [folder, setFolder] = useState(null);
   const [breadcrumbPath, setBreadcrumbPath] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
-  const [uploading, setUploading] = useState(false);
   const [showCreateSubfolderDialog, setShowCreateSubfolderDialog] = useState(false);
   const [newSubfolderName, setNewSubfolderName] = useState('');
   const [sharingDialog, setSharingDialog] = useState({ isOpen: false, fileId: null, folderId: null });
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
+  // Use React Query hooks for data fetching
+  const { data: folder, isLoading: folderLoading, error: folderError } = useFolder(folderId);
+  const { data: files = [], isLoading: filesLoading, error: filesError } = useFilesByFolder(folderId);
+  
+  // Mutations
+  const uploadFile = useUploadFile();
+  const downloadFile = useDownloadFile();
+  const deleteFile = useDeleteFile();
+  const createFolder = useCreateFolder();
+  const deleteFolder = useDeleteFolder();
+
+  // Extract subfolders from folder children
+  const subfolders = folder?.children || [];
+  const loading = folderLoading || filesLoading;
+  
+  // Set error from queries
   useEffect(() => {
-    fetchFolder();
-    fetchFiles();
-  }, [folderId]);
+    if (folderError) {
+      setError(folderError.response?.data?.error || 'Failed to fetch folder');
+    } else if (filesError) {
+      setError(filesError.response?.data?.error || 'Failed to fetch files');
+    } else {
+      setError('');
+    }
+  }, [folderError, filesError]);
+
+  // Build breadcrumb path when folder changes
+  useEffect(() => {
+    if (folder) {
+      const path = [];
+      let currentFolder = folder;
+      
+      while (currentFolder) {
+        path.unshift({ id: currentFolder.id, name: currentFolder.name });
+        currentFolder = currentFolder.parent || null;
+      }
+      
+      path.unshift({ id: null, name: 'Folders' });
+      setBreadcrumbPath(path);
+    }
+  }, [folder]);
 
   // Listen for file acceptance events (from SharedFilesNotification)
   useEffect(() => {
     const handleFileAccepted = (event) => {
-      // Refresh files when a file is accepted in the current folder
+      // Files will automatically refetch due to React Query invalidation
       if (folderId && event.detail && event.detail.folderId === Number(folderId)) {
-        fetchFiles();
+        // React Query will handle the refetch
       }
     };
     
@@ -39,79 +73,22 @@ const Files = () => {
     return () => window.removeEventListener('fileAccepted', handleFileAccepted);
   }, [folderId]);
 
-  const buildBreadcrumbPath = async (currentFolderId) => {
-    const path = [];
-    let currentId = currentFolderId;
-
-    while (currentId) {
-      try {
-        const response = await folderAPI.getById(currentId);
-        const folderData = response.data;
-        path.unshift({ id: folderData.id, name: folderData.name });
-        
-        if (folderData.parent) {
-          currentId = folderData.parent.id;
-        } else {
-          currentId = null;
-        }
-      } catch (err) {
-        console.error('Error building breadcrumb:', err);
-        break;
-      }
-    }
-
-    // Add "Home" or "Folders" at the beginning
-    path.unshift({ id: null, name: 'Folders' });
-    setBreadcrumbPath(path);
-  };
-
-  const fetchFolder = async () => {
-    try {
-      const response = await folderAPI.getById(folderId);
-      setFolder(response.data);
-      // Extract subfolders from children
-      if (response.data.children) {
-        setSubfolders(response.data.children);
-      } else {
-        setSubfolders([]);
-      }
-      // Build breadcrumb path
-      await buildBreadcrumbPath(folderId);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch folder');
-    }
-  };
-
-  const fetchFiles = async () => {
-    try {
-      setLoading(true);
-      const response = await fileAPI.getByFolder(folderId);
-      setFiles(response.data);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch files');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      setUploading(true);
-      const { presigned } = await fileAPI.upload(file, folderId);
+      const result = await uploadFile.mutateAsync({ file, folderId });
       setInfoMessage(
-        `Upload completed via pre-signed link (initial TTL: ${presigned.expiresInSeconds}s)`
+        `Upload completed via pre-signed link (initial TTL: ${result.presigned?.expiresInSeconds || 60}s)`
       );
       setError('');
-      fetchFiles();
+      // React Query will automatically refetch files list
     } catch (err) {
       setInfoMessage('');
       const message = err.response?.data?.error || err.message || 'Failed to upload file';
       setError(message);
     } finally {
-      setUploading(false);
       e.target.value = ''; // Reset input
     }
   };
@@ -120,8 +97,8 @@ const Files = () => {
     if (!window.confirm('Are you sure you want to delete this file?')) return;
 
     try {
-      await fileAPI.delete(id);
-      fetchFiles();
+      await deleteFile.mutateAsync(id);
+      // React Query will automatically refetch files list
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete file');
     }
@@ -129,8 +106,13 @@ const Files = () => {
 
   const handleDownload = async (id, filename) => {
     try {
-      const { data, presigned } = await fileAPI.download(id);
-      const url = window.URL.createObjectURL(new Blob([data]));
+      const result = await downloadFile.mutateAsync({ fileId: id, makeOffline: false });
+      // Handle both response formats: { data: blob } or blob directly
+      const blob = result.data || result;
+      if (!blob) {
+        throw new Error('No file data received');
+      }
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
@@ -139,12 +121,33 @@ const Files = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
       setInfoMessage(
-        `Pre-signed download token valid for ${presigned.expiresInSeconds}s (auto-invalidated after use).`
+        result.fromCache 
+          ? 'Downloaded from cache (no network request needed)'
+          : `Download completed successfully`
       );
       setError('');
     } catch (err) {
       setInfoMessage('');
-      setError(err.response?.data?.error || 'Failed to download file');
+      setError(err.response?.data?.error || err.message || 'Failed to download file');
+    }
+  };
+
+  const handleMakeOffline = async (fileId) => {
+    try {
+      const file = files.find(f => f.id === fileId);
+      if (!file) return;
+
+      setInfoMessage('Downloading file for offline access...');
+      const result = await downloadFile.mutateAsync({ 
+        fileId, 
+        makeOffline: true 
+      });
+      
+      setInfoMessage(`File "${file.originalName}" is now available offline!`);
+      setError('');
+    } catch (err) {
+      setInfoMessage('');
+      setError(err.response?.data?.error || 'Failed to make file available offline');
     }
   };
 
@@ -158,10 +161,13 @@ const Files = () => {
     if (!newSubfolderName.trim()) return;
 
     try {
-      await folderAPI.create(newSubfolderName.trim(), folderId);
+      await createFolder.mutateAsync({ 
+        name: newSubfolderName.trim(), 
+        parentId: folderId 
+      });
       setNewSubfolderName('');
       setShowCreateSubfolderDialog(false);
-      fetchFolder(); // Refresh to get new subfolder
+      // React Query will automatically refetch folder data
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create subfolder');
     }
@@ -175,8 +181,8 @@ const Files = () => {
     if (!window.confirm('Are you sure you want to delete this subfolder?')) return;
 
     try {
-      await folderAPI.delete(id);
-      fetchFolder(); // Refresh to remove deleted subfolder
+      await deleteFolder.mutateAsync(id);
+      // React Query will automatically refetch folder data
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete subfolder');
     }
@@ -324,11 +330,11 @@ const Files = () => {
               + Create Subfolder
             </button>
             <label className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer inline-block">
-              {uploading ? 'Uploading...' : '+ Upload File'}
+              {uploadFile.isPending ? 'Uploading...' : '+ Upload File'}
               <input
                 type="file"
                 onChange={handleFileUpload}
-                disabled={uploading}
+                disabled={uploadFile.isPending}
                 className="hidden"
               />
             </label>
@@ -449,6 +455,7 @@ const Files = () => {
                 onShare={(e) => handleShareClick(e, file.id)}
                 onDownload={() => handleDownload(file.id, file.originalName)}
                 onDelete={() => handleDeleteFile(file.id)}
+                onMakeOffline={handleMakeOffline}
                 formatFileSize={formatFileSize}
                 formatDate={formatDate}
               />

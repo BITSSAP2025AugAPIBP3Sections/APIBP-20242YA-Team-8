@@ -19,7 +19,10 @@ const Register = () => {
       await register(username, password);
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      // Handle different error types
+      const errorMessage = err.message || err.response?.data?.error || 'Registration failed';
+      setError(errorMessage);
+      console.error('Registration error:', err);
     } finally {
       setLoading(false);
     }

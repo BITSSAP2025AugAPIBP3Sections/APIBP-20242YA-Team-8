@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Folders from './pages/Folders';
 import Files from './pages/Files';
+import OfflineFiles from './pages/OfflineFiles';
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -34,6 +35,10 @@ const AppRoutes = () => {
             <Files />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/offline"
+        element={<OfflineFiles />}
       />
       <Route path="/" element={<Navigate to="/folders" replace />} />
     </Routes>

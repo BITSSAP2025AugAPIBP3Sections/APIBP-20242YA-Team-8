@@ -1,10 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { permissionAPI } from '../services/api';
+import { isFileOffline } from '../services/offlineStorage';
 
-const FileCard = ({ file, onShare, onDownload, onDelete, formatFileSize, formatDate }) => {
+const FileCard = ({ file, onShare, onDownload, onDelete, onMakeOffline, formatFileSize, formatDate }) => {
   const [showOwnerInfo, setShowOwnerInfo] = useState(false);
   const [ownerInfo, setOwnerInfo] = useState(null);
   const [loadingOwner, setLoadingOwner] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [checkingOffline, setCheckingOffline] = useState(true);
+
+  // Check if file is available offline
+  useEffect(() => {
+    const checkOffline = async () => {
+      try {
+        const offline = await isFileOffline(file.id);
+        setIsOffline(offline);
+      } catch (err) {
+        console.error('Failed to check offline status:', err);
+      } finally {
+        setCheckingOffline(false);
+      }
+    };
+    checkOffline();
+  }, [file.id]);
 
   const handleOwnerBadgeClick = async (e) => {
     e.stopPropagation();
@@ -25,6 +43,14 @@ const FileCard = ({ file, onShare, onDownload, onDelete, formatFileSize, formatD
     }
     setShowOwnerInfo(!showOwnerInfo);
   };
+  
+  const handleMakeOffline = async (e) => {
+    e.stopPropagation();
+    if (onMakeOffline) {
+      await onMakeOffline(file.id);
+      setIsOffline(true);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow relative group">
@@ -35,6 +61,14 @@ const FileCard = ({ file, onShare, onDownload, onDelete, formatFileSize, formatD
               <h3 className="text-lg font-semibold text-gray-800 truncate">
                 {file.originalName}
               </h3>
+              {isOffline && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1" title="Available offline">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                  </svg>
+                  Offline
+                </span>
+              )}
               {file.isShared && (
                 <div className="relative">
                   <button
@@ -103,12 +137,31 @@ const FileCard = ({ file, onShare, onDownload, onDelete, formatFileSize, formatD
           )}
         </div>
         <div className="flex items-center justify-between mt-4">
-          <button
-            onClick={onDownload}
-            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-          >
-            Download
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={onDownload}
+              className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+            >
+              Download
+            </button>
+            {onMakeOffline && (
+              <button
+                onClick={handleMakeOffline}
+                disabled={isOffline || checkingOffline}
+                className={`text-sm font-medium flex items-center gap-1 ${
+                  isOffline 
+                    ? 'text-gray-400 cursor-not-allowed' 
+                    : 'text-green-600 hover:text-green-700'
+                }`}
+                title={isOffline ? 'Already available offline' : 'Make available offline'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {isOffline ? 'Offline ✓' : 'Offline'}
+              </button>
+            )}
+          </div>
           {!file.isShared && (
             <button
               onClick={onDelete}
