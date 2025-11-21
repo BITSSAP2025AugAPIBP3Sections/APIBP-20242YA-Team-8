@@ -12,6 +12,7 @@ const SharedFilesSection = () => {
   const [targetFolderId, setTargetFolderId] = useState(null);
   const [moving, setMoving] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
 
   useEffect(() => {
     fetchSharedFiles();
@@ -71,8 +72,8 @@ const SharedFilesSection = () => {
     }
 
     try {
-      const response = await fileAPI.download(file.fileId);
-      const blob = new Blob([response.data], { type: file.contentType });
+      const { data, presigned } = await fileAPI.download(file.fileId);
+      const blob = new Blob([data], { type: file.contentType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -81,8 +82,13 @@ const SharedFilesSection = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      setInfoMessage(
+        `Pre-signed download link for "${file.fileName}" expires in ${presigned.expiresInSeconds}s.`
+      );
+      setError('');
     } catch (err) {
       setError('Failed to download file');
+      setInfoMessage('');
     }
   };
 
@@ -142,9 +148,30 @@ const SharedFilesSection = () => {
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+      {(error || infoMessage) && (
+        <div className="space-y-2">
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex justify-between items-center">
+              <span>{error}</span>
+              <button
+                onClick={() => setError('')}
+                className="font-semibold text-red-700 hover:text-red-900"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          {infoMessage && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded flex justify-between items-center">
+              <span>{infoMessage}</span>
+              <button
+                onClick={() => setInfoMessage('')}
+                className="font-semibold text-blue-700 hover:text-blue-900"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         </div>
       )}
 

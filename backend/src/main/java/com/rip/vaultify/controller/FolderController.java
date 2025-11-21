@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/folders")
@@ -34,10 +33,7 @@ public class FolderController {
     @GetMapping
     public ResponseEntity<List<FolderResponse>> getAllFolders() {
         User currentUser = userService.getCurrentUser();
-        List<FolderResponse> folders = folderService.getAllFoldersByUser(currentUser.getId())
-                .stream()
-                .map(FolderResponse::new)
-                .collect(Collectors.toList());
+        List<FolderResponse> folders = folderService.getAllFoldersByUser(currentUser.getId());
         return ResponseEntity.ok(folders);
     }
 

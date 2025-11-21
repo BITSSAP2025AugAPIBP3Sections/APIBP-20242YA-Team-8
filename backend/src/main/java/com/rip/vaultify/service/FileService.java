@@ -1,11 +1,14 @@
 package com.rip.vaultify.service;
 
+import com.rip.vaultify.dto.FileResponse;
 import com.rip.vaultify.model.File;
 import com.rip.vaultify.model.Folder;
 import com.rip.vaultify.model.User;
 import com.rip.vaultify.repository.FileRepository;
 import com.rip.vaultify.repository.FolderRepository;
 import com.rip.vaultify.repository.PermissionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +20,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
 public class FileService {
 
+    private static final Logger logger = LoggerFactory.getLogger(FileService.class);
     private final FileRepository fileRepository;
     private final FolderRepository folderRepository;
     private final PermissionService permissionService;
@@ -39,6 +44,8 @@ public class FileService {
 
     @Transactional
     public File uploadFile(MultipartFile multipartFile, Long folderId, Long userId) throws IOException {
+        Objects.requireNonNull(folderId, "folderId cannot be null");
+        Objects.requireNonNull(userId, "userId cannot be null");
         // Validate folder exists and belongs to user
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new RuntimeException("Folder not found with id: " + folderId));
@@ -82,24 +89,25 @@ public class FileService {
         return savedFile;
     }
 
-    public List<File> getFilesByFolder(Long folderId, Long userId) {
+    public List<FileResponse> getFilesByFolder(Long folderId, Long userId) {
+        Objects.requireNonNull(folderId, "folderId cannot be null");
+        Objects.requireNonNull(userId, "userId cannot be null");
+        
         User user = new User();
         user.setId(userId);
-        
-        // Get all files in the folder
+
         List<File> allFiles = fileRepository.findByFolderId(folderId);
-        
-        // Filter files where user has permission (owner, read, or write)
+
         return allFiles.stream()
-                .filter(file -> {
-                    // Check if user is owner, has read, or write permission
-                    return permissionService.isOwner(file, user) || 
-                           permissionService.hasReadPermission(file, user);
-                })
+                .filter(file -> permissionService.isOwner(file, user) ||
+                        permissionService.hasReadPermission(file, user))
+                .map(file -> new FileResponse(file, user, permissionService))
                 .toList();
     }
 
     public File getFileByIdAndUser(Long id, Long userId) {
+        Objects.requireNonNull(id, "file id cannot be null");
+        Objects.requireNonNull(userId, "userId cannot be null");
         File file = fileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("File not found with id: " + id));
         
@@ -115,6 +123,8 @@ public class FileService {
     }
     
     public File getFileByIdForWrite(Long id, Long userId) {
+        Objects.requireNonNull(id, "file id cannot be null");
+        Objects.requireNonNull(userId, "userId cannot be null");
         File file = fileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("File not found with id: " + id));
         
@@ -131,6 +141,8 @@ public class FileService {
 
     @Transactional
     public void deleteFile(Long id, Long userId) throws IOException {
+        Objects.requireNonNull(id, "file id cannot be null");
+        Objects.requireNonNull(userId, "userId cannot be null");
         File file = fileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("File not found with id: " + id));
         
@@ -156,6 +168,8 @@ public class FileService {
     }
 
     public byte[] downloadFile(Long id, Long userId) throws IOException {
+        Objects.requireNonNull(id, "file id cannot be null");
+        Objects.requireNonNull(userId, "userId cannot be null");
         // getFileByIdAndUser already checks read permission
         File file = getFileByIdAndUser(id, userId);
         Path filePath = Paths.get(file.getFilePath());
@@ -168,6 +182,9 @@ public class FileService {
      */
     @Transactional
     public File copySharedFileToFolder(Long fileId, Long targetFolderId, Long userId) throws IOException {
+        Objects.requireNonNull(fileId, "fileId cannot be null");
+        Objects.requireNonNull(targetFolderId, "targetFolderId cannot be null");
+        Objects.requireNonNull(userId, "userId cannot be null");
         // Get the source file (check WRITE permission)
         File sourceFile = getFileByIdForWrite(fileId, userId);
         
@@ -215,11 +232,13 @@ public class FileService {
     }
 
     public File getFileById(Long id) {
+        Objects.requireNonNull(id, "file id cannot be null");
         return fileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("File not found with id: " + id));
     }
 
     public List<File> getFilesByFolderId(Long folderId) {
+        Objects.requireNonNull(folderId, "folderId cannot be null");
         return fileRepository.findByFolderId(folderId);
     }
 }

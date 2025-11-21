@@ -52,21 +52,45 @@ export const folderAPI = {
   delete: (id) => api.delete(`/api/folders/${id}`),
 };
 
+const PRESIGN_BASE_PATH = '/api/v1/files/presign';
+
+const requestPreSignedUrl = (path, payload) =>
+  api.post(`${PRESIGN_BASE_PATH}/${path}`, payload);
+
 export const fileAPI = {
-  upload: (file, folderId) => {
+  upload: async (file, folderId, fileId = null) => {
+    const resolvedFolderId =
+      folderId !== undefined && folderId !== null ? Number(folderId) : null;
+
+    if (!resolvedFolderId || Number.isNaN(resolvedFolderId)) {
+      throw new Error('A valid folderId is required to upload files.');
+    }
+
+    const presigned = await requestPreSignedUrl('upload', {
+      folderId: resolvedFolderId,
+      fileId,
+    });
+
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('folderId', folderId);
-    return api.post('/api/files/upload', formData, {
+    formData.append('folderId', resolvedFolderId);
+
+    const uploadResponse = await axios.post(presigned.data.url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
+
+    return { data: uploadResponse.data, presigned: presigned.data };
   },
   getByFolder: (folderId) => api.get(`/api/files/folder/${folderId}`),
   getById: (id) => api.get(`/api/files/${id}`),
   delete: (id) => api.delete(`/api/files/${id}`),
-  download: (id) => api.get(`/api/files/${id}/download`, { responseType: 'blob' }),
+  download: async (id) => {
+    const presigned = await requestPreSignedUrl('download', { fileId: id });
+    const response = await axios.get(presigned.data.url, { responseType: 'blob' });
+    return { data: response.data, presigned: presigned.data };
+  },
   copySharedFile: (fileId, folderId) =>
     api.post('/api/files/copy', { fileId, folderId }),
   preview: (id) => api.get(`/api/files/${id}/preview`, { responseType: 'blob' }),

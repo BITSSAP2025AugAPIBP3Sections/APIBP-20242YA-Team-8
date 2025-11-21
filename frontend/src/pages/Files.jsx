@@ -13,6 +13,7 @@ const Files = () => {
   const [breadcrumbPath, setBreadcrumbPath] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [showCreateSubfolderDialog, setShowCreateSubfolderDialog] = useState(false);
   const [newSubfolderName, setNewSubfolderName] = useState('');
@@ -99,10 +100,16 @@ const Files = () => {
 
     try {
       setUploading(true);
-      await fileAPI.upload(file, folderId);
+      const { presigned } = await fileAPI.upload(file, folderId);
+      setInfoMessage(
+        `Upload completed via pre-signed link (initial TTL: ${presigned.expiresInSeconds}s)`
+      );
+      setError('');
       fetchFiles();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to upload file');
+      setInfoMessage('');
+      const message = err.response?.data?.error || err.message || 'Failed to upload file';
+      setError(message);
     } finally {
       setUploading(false);
       e.target.value = ''; // Reset input
@@ -122,8 +129,8 @@ const Files = () => {
 
   const handleDownload = async (id, filename) => {
     try {
-      const response = await fileAPI.download(id);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const { data, presigned } = await fileAPI.download(id);
+      const url = window.URL.createObjectURL(new Blob([data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
@@ -131,8 +138,13 @@ const Files = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      setInfoMessage(
+        `Pre-signed download token valid for ${presigned.expiresInSeconds}s (auto-invalidated after use).`
+      );
+      setError('');
     } catch (err) {
-      setError('Failed to download file');
+      setInfoMessage('');
+      setError(err.response?.data?.error || 'Failed to download file');
     }
   };
 
@@ -236,10 +248,27 @@ const Files = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error Message */}
+        {/* Status Messages */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
+            <span>{error}</span>
+            <button
+              onClick={() => setError('')}
+              className="text-red-700 hover:text-red-900 font-semibold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+        {infoMessage && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-4 flex justify-between items-center">
+            <span>{infoMessage}</span>
+            <button
+              onClick={() => setInfoMessage('')}
+              className="text-blue-700 hover:text-blue-900 font-semibold"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 

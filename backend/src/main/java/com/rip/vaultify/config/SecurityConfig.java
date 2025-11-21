@@ -48,7 +48,8 @@ public class SecurityConfig {
                                 "/webjars/**", "/static/**", "/css/**", "/js/**", "/images/**", "/favicon.ico",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html")
+                                "/swagger-ui.html",
+                                "/api/v1/files/presign/**")
                         .permitAll()
                         .anyRequest().authenticated())
                 // Stateless session management for JWT

@@ -1,10 +1,12 @@
 package com.rip.vaultify.dto;
 
 import com.rip.vaultify.model.Folder;
+import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class FolderResponse {
+public class FolderResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     private String name;
     private ParentInfo parent;
@@ -27,7 +29,8 @@ public class FolderResponse {
         }
     }
 
-    public static class ParentInfo {
+    public static class ParentInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
         private Long id;
         private String name;
 
@@ -40,7 +43,8 @@ public class FolderResponse {
         public String getName() { return name; }
     }
 
-    public static class ChildInfo {
+    public static class ChildInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
         private Long id;
         private String name;
 

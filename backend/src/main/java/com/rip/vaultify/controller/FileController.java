@@ -15,8 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -45,10 +45,7 @@ public class FileController {
     @GetMapping("/folder/{folderId}")
     public ResponseEntity<List<FileResponse>> getFilesByFolder(@PathVariable Long folderId) {
         User currentUser = userService.getCurrentUser();
-        List<FileResponse> files = fileService.getFilesByFolder(folderId, currentUser.getId())
-                .stream()
-                .map(file -> new FileResponse(file, currentUser, permissionService))
-                .collect(Collectors.toList());
+        List<FileResponse> files = fileService.getFilesByFolder(folderId, currentUser.getId());
         return ResponseEntity.ok(files);
     }
 
@@ -71,13 +68,18 @@ public class FileController {
         User currentUser = userService.getCurrentUser();
         // getFileByIdAndUser already checks READ permission
         File file = fileService.getFileByIdAndUser(id, currentUser.getId());
-        byte[] data = fileService.downloadFile(id, currentUser.getId());
+        byte[] data = Objects.requireNonNull(fileService.downloadFile(id, currentUser.getId()), "File data cannot be null");
 
         ByteArrayResource resource = new ByteArrayResource(data);
 
         // Preview: no attachment header, allows READ users
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+        MediaType mediaType = MediaType.parseMediaType(contentType);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(file.getContentType()))
+                .contentType(mediaType)
                 .body(resource);
     }
     
@@ -94,14 +96,23 @@ public class FileController {
                     .build();
         }
         
-        byte[] data = fileService.downloadFile(id, currentUser.getId());
+        byte[] data = Objects.requireNonNull(fileService.downloadFile(id, currentUser.getId()), "File data cannot be null");
 
         ByteArrayResource resource = new ByteArrayResource(data);
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+        MediaType mediaType = MediaType.parseMediaType(contentType);
+        String downloadName = file.getOriginalName();
+        if (downloadName == null) {
+            downloadName = "downloaded-file";
+        }
 
         // Download: with attachment header, requires WRITE permission
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(file.getContentType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getOriginalName() + "\"")
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
                 .body(resource);
     }
     

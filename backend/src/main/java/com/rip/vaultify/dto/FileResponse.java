@@ -5,7 +5,10 @@ import com.rip.vaultify.model.User;
 import com.rip.vaultify.service.PermissionService;
 import java.time.LocalDateTime;
 
-public class FileResponse {
+import java.io.Serializable;
+
+public class FileResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     private String originalName;
     private String contentType;
