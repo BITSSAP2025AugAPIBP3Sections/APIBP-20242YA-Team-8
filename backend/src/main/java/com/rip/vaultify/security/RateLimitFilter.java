@@ -65,7 +65,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         // If rate limiting applies, check the bucket
         if (bucket != null) {
-            if (!bucket.tryConsume(1)) {
+            boolean consumed = bucket.tryConsume(1);
+            if (!consumed) {
                 // Rate limit exceeded
                 handleRateLimitExceeded(response, rateLimitType, bucket);
                 return;
@@ -102,7 +103,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return xRealIp;
         }
         
-        return request.getRemoteAddr();
+        String remoteAddr = request.getRemoteAddr();
+        // Normalize IPv6 localhost to IPv4 for consistent rate limiting
+        if ("0:0:0:0:0:0:0:1".equals(remoteAddr) || "::1".equals(remoteAddr)) {
+            return "127.0.0.1";
+        }
+        return remoteAddr;
     }
 
     private void handleRateLimitExceeded(HttpServletResponse response, String rateLimitType, Bucket bucket) throws IOException {

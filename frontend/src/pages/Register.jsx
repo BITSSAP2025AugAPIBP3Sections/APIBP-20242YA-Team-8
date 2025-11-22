@@ -19,6 +19,8 @@ const Register = () => {
       await register(username, password);
       navigate('/login');
     } catch (err) {
+      console.error('Registration error:', err);
+      
       if (err.response?.status === 429) {
         const rateLimitInfo = err.rateLimitInfo;
         const retryAfter = rateLimitInfo?.retryAfter || 60;
@@ -29,12 +31,13 @@ const Register = () => {
           `Rate limit exceeded. Too many registration attempts. Please try again after ${retryAfter} seconds (or at ${resetTime}).`
         );
       } else {
-        setError(err.response?.data?.error || err.response?.data?.message || 'Registration failed');
+        // Handle different error types
+        const errorMessage = err.response?.data?.error || 
+                            err.response?.data?.message || 
+                            err.message || 
+                            'Registration failed';
+        setError(errorMessage);
       }
-      // Handle different error types
-      const errorMessage = err.message || err.response?.data?.error || 'Registration failed';
-      setError(errorMessage);
-      console.error('Registration error:', err);
     } finally {
       setLoading(false);
     }
