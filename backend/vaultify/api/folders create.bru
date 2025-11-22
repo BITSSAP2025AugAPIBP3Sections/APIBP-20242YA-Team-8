@@ -1,0 +1,39 @@
+meta {
+  name: Create Folder
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/folders
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Test Folder",
+    "parentId": null
+  }
+}
+
+docs {
+  # Create Folder
+  
+  ## Rate Limit: 100 requests per 60 seconds (API type)
+  
+  ## Testing Rate Limit:
+  - Send 101 requests rapidly
+  - 101st should return 429
+  - Check X-RateLimit-Type: api
+}
+
+settings {
+  encodeUrl: true
+}
+

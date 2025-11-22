@@ -1,0 +1,40 @@
+meta {
+  name: Upload File
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/api/files/upload
+  body: multipart
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:multipart {
+  file: <select file>
+  folderId: 1
+}
+
+docs {
+  # Upload File
+  
+  ## Rate Limit: 10 requests per 60 seconds (UPLOAD type)
+  
+  ## Testing Rate Limit:
+  1. First create a folder and note its ID
+  2. Replace folderId with actual folder ID
+  3. Select a test file
+  4. Send 11 requests rapidly
+  5. 11th request should return 429
+  6. Check X-RateLimit-Type: upload
+  7. Check X-RateLimit-Remaining decreases: 9, 8, 7... 0
+}
+
+settings {
+  encodeUrl: true
+}
+
