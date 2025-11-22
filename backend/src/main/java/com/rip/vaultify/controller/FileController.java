@@ -12,6 +12,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -29,6 +39,8 @@ import java.util.Map;
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping("/api/files")
+@Tag(name = "Files", description = "File management operations - upload, download, preview, and delete files")
+@SecurityRequirement(name = "bearerAuth")
 public class FileController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileController.class);
@@ -71,10 +83,27 @@ public class FileController {
         }
     }
 
+    @Operation(
+            summary = "Upload a file",
+            description = "Uploads a file to the specified folder. Supports idempotency via Idempotency-Key header. Maximum file size is 10MB."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File uploaded successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = FileResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Folder not found")
+    })
     @PostMapping("/upload")
     public ResponseEntity<FileResponse> uploadFile(
+            @Parameter(description = "File to upload", required = true)
             @RequestParam("file") MultipartFile file,
+            @Parameter(description = "ID of the folder to upload the file to", required = true)
             @RequestParam("folderId") Long folderId,
+            @Parameter(description = "Optional idempotency key for retry-safe uploads")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
         
         // Check idempotency if key provided
@@ -125,9 +154,25 @@ public class FileController {
         }
     }
 
+    @Operation(
+            summary = "Get all files in a folder",
+            description = "Retrieves all files in the specified folder. Supports ETag-based caching via If-None-Match header."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Files retrieved successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = FileResponse.class))
+            ),
+            @ApiResponse(responseCode = "304", description = "Not modified - content unchanged since last request"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Folder not found")
+    })
     @GetMapping("/folder/{folderId}")
     public ResponseEntity<List<FileResponse>> getFilesByFolder(
+            @Parameter(description = "ID of the folder", required = true)
             @PathVariable Long folderId,
+            @Parameter(description = "ETag value for conditional request")
             @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
         User currentUser = userService.getCurrentUser();
         List<FileResponse> files = fileService.getFilesByFolder(folderId, currentUser.getId());
@@ -169,9 +214,26 @@ public class FileController {
         }
     }
 
+    @Operation(
+            summary = "Get file by ID",
+            description = "Retrieves file metadata by ID. User must have READ permission or be the owner. Supports ETag-based caching."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File retrieved successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = FileResponse.class))
+            ),
+            @ApiResponse(responseCode = "304", description = "Not modified - content unchanged since last request"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<FileResponse> getFileById(
+            @Parameter(description = "File ID", required = true)
             @PathVariable Long id,
+            @Parameter(description = "ETag value for conditional request")
             @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
         User currentUser = userService.getCurrentUser();
         File file = fileService.getFileByIdAndUser(id, currentUser.getId());
@@ -191,15 +253,43 @@ public class FileController {
                 .body(fileResponse);
     }
 
+    @Operation(
+            summary = "Delete a file",
+            description = "Deletes a file. Only the file owner can delete files."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "File deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - only owner can delete"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteFile(@PathVariable Long id) throws IOException {
+    public ResponseEntity<Void> deleteFile(
+            @Parameter(description = "File ID to delete", required = true)
+            @PathVariable Long id) throws IOException {
         User currentUser = userService.getCurrentUser();
         fileService.deleteFile(id, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+            summary = "Preview a file",
+            description = "Returns the file content for preview. User must have READ permission. Content is returned inline (not as download)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File preview returned",
+                    content = @Content(mediaType = "application/octet-stream")
+            ),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @GetMapping("/{id}/preview")
-    public ResponseEntity<ByteArrayResource> previewFile(@PathVariable Long id) throws IOException {
+    public ResponseEntity<ByteArrayResource> previewFile(
+            @Parameter(description = "File ID to preview", required = true)
+            @PathVariable Long id) throws IOException {
         User currentUser = userService.getCurrentUser();
         // getFileByIdAndUser already checks READ permission
         File file = fileService.getFileByIdAndUser(id, currentUser.getId());
@@ -218,10 +308,28 @@ public class FileController {
                 .body(resource);
     }
     
+    @Operation(
+            summary = "Download a file",
+            description = "Downloads a file. User must have WRITE permission or be the owner. Supports idempotency and ETag-based caching."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File downloaded successfully",
+                    content = @Content(mediaType = "application/octet-stream")
+            ),
+            @ApiResponse(responseCode = "304", description = "Not modified - content unchanged since last request"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - WRITE permission required"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @GetMapping("/{id}/download")
     public ResponseEntity<ByteArrayResource> downloadFile(
+            @Parameter(description = "File ID to download", required = true)
             @PathVariable Long id,
+            @Parameter(description = "Optional idempotency key for retry-safe downloads")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Parameter(description = "ETag value for conditional request")
             @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) throws IOException {
         User currentUser = userService.getCurrentUser();
         LoggingConfig.LoggingContext.setUserId(currentUser.getId());
@@ -298,8 +406,30 @@ public class FileController {
         }
     }
     
+    @Operation(
+            summary = "Copy a shared file",
+            description = "Copies a shared file to a folder in the current user's account. The user must have READ permission on the source file."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File copied successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = FileResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request - missing fileId or folderId"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "File or folder not found")
+    })
     @PostMapping("/copy")
     public ResponseEntity<FileResponse> copySharedFile(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Copy request with fileId and folderId",
+                    required = true,
+                    content = @Content(
+                            examples = @ExampleObject(value = "{\"fileId\": 1, \"folderId\": 2}")
+                    )
+            )
             @RequestBody Map<String, Long> body) throws IOException {
         User currentUser = userService.getCurrentUser();
         Long fileId = body.get("fileId");

@@ -1,0 +1,10 @@
+# Artillery test results
+artillery-results/
+artillery-*.json
+
+# Test logs
+*.log
+
+# Keep example results if needed
+!example-results.json
+

@@ -8,6 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
@@ -18,6 +25,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/auth")
+@Tag(name = "Authentication", description = "User authentication and registration endpoints")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -37,9 +45,46 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
-    // DTOs are simple maps for brevity
+    @Operation(
+            summary = "Register a new user",
+            description = "Creates a new user account with the provided username and password. The username must be unique."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User registered successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"id\": 1, \"username\": \"john_doe\"}")
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request - username or password missing",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"username and password required\"}")
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Conflict - username already exists",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"Username already exists\"}")
+                    )
+            )
+    })
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String,String> body) {
+    public ResponseEntity<?> register(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Registration credentials",
+                    required = true,
+                    content = @Content(
+                            examples = @ExampleObject(value = "{\"username\": \"john_doe\", \"password\": \"securePassword123\"}")
+                    )
+            )
+            @RequestBody Map<String,String> body) {
         String username = body.get("username");
         String password = body.get("password");
 
@@ -69,8 +114,46 @@ public class AuthController {
         }
     }
 
+    @Operation(
+            summary = "Login user",
+            description = "Authenticates a user and returns a JWT token. Use this token in the Authorization header for protected endpoints."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Login successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\", \"expiresInMs\": 86400000}")
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request - username or password missing",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"username and password required\"}")
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Invalid credentials",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"invalid credentials\"}")
+                    )
+            )
+    })
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String,String> body) {
+    public ResponseEntity<?> login(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Login credentials",
+                    required = true,
+                    content = @Content(
+                            examples = @ExampleObject(value = "{\"username\": \"john_doe\", \"password\": \"securePassword123\"}")
+                    )
+            )
+            @RequestBody Map<String,String> body) {
         String username = body.get("username");
         String password = body.get("password");
         
@@ -121,7 +204,29 @@ public class AuthController {
         }
     }
 
-    // Example endpoint to verify token and return user context
+    @Operation(
+            summary = "Get current user information",
+            description = "Returns information about the currently authenticated user. Requires a valid JWT token."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User information retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"username\": \"john_doe\", \"authorities\": [\"ROLE_USER\"]}")
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - invalid or missing token",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"unauthenticated\"}")
+                    )
+            )
+    })
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
     @GetMapping("/me")
     public ResponseEntity<?> me(org.springframework.security.core.Authentication authentication) {
         logger.debug("Token verification request received");

@@ -1,0 +1,147 @@
+config:
+  target: "http://localhost:8080"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 10
+      name: "Ramp up load"
+    - duration: 60
+      arrivalRate: 20
+      name: "Sustained load"
+    - duration: 30
+      arrivalRate: 5
+      name: "Ramp down"
+  processor: "./artillery-processor.js"
+  variables:
+    usernamePrefix: "loadtest_user"
+    password: "testpassword123"
+  plugins:
+    expect: {}
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "REST API Load Test"
+    weight: 100
+    flow:
+      # Step 1: Register a new user
+      - post:
+          url: "/auth/register"
+          json:
+            username: "loadtest_{{ $randomString() }}_{{ $timestamp }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.username"
+              as: "registeredUsername"
+          expect:
+            - statusCode: [200, 201]
+      
+      - think: 1
+      
+      # Step 2: Login with registered user
+      - post:
+          url: "/auth/login"
+          json:
+            username: "{{ registeredUsername }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: token
+      
+      - think: 1
+      
+      # Step 3: Get current user info
+      - get:
+          url: "/auth/me"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 4: Get all folders
+      - get:
+          url: "/api/folders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$[0].id"
+              as: "folderId"
+              strict: false
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 5: Create a new folder
+      - post:
+          url: "/api/folders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "LoadTestFolder_{{ $timestamp }}"
+            parentId: null
+          capture:
+            - json: "$.id"
+              as: "createdFolderId"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: id
+      
+      - think: 1
+      
+      # Step 6: Get folder by ID
+      - get:
+          url: "/api/folders/{{ createdFolderId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 7: Get files in folder
+      - get:
+          url: "/api/files/folder/{{ createdFolderId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 8: Get all users
+      - get:
+          url: "/api/users"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 9: Get shared files
+      - get:
+          url: "/api/permissions/shared"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 2
+

@@ -7,6 +7,14 @@ import com.rip.vaultify.service.FileService;
 import com.rip.vaultify.service.IdempotencyService;
 import com.rip.vaultify.service.PreSignedUrlService;
 import com.rip.vaultify.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,6 +28,8 @@ import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/files/presign")
+@Tag(name = "Pre-Signed URLs", description = "Generate and use pre-signed URLs for secure file uploads and downloads")
+@SecurityRequirement(name = "bearerAuth")
 public class PreSignedUrlController {
 
     private final PreSignedUrlService preSignedUrlService;
@@ -37,11 +47,27 @@ public class PreSignedUrlController {
         this.idempotencyService = idempotencyService;
     }
 
-    /**
-     * Generate pre-signed upload URL
-     */
+    @Operation(
+            summary = "Generate pre-signed upload URL",
+            description = "Generates a time-limited, one-time-use token for secure file uploads. Requires folderId or fileId."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Pre-signed URL generated successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PreSignedUrlResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request - folderId or fileId required"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Folder or file not found")
+    })
     @PostMapping("/upload")
-    public ResponseEntity<PreSignedUrlResponse> generateUploadUrl(@RequestBody PreSignedUrlRequest request) {
+    public ResponseEntity<PreSignedUrlResponse> generateUploadUrl(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Pre-signed URL request for upload",
+                    required = true
+            )
+            @RequestBody PreSignedUrlRequest request) {
         User currentUser = userService.getCurrentUser();
         request.setAction("write");
         if (request.getFolderId() == null && request.getFileId() == null) {
@@ -51,11 +77,27 @@ public class PreSignedUrlController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Generate pre-signed download URL
-     */
+    @Operation(
+            summary = "Generate pre-signed download URL",
+            description = "Generates a time-limited, one-time-use token for secure file downloads. Requires fileId."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Pre-signed URL generated successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PreSignedUrlResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid request - fileId required"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @PostMapping("/download")
-    public ResponseEntity<PreSignedUrlResponse> generateDownloadUrl(@RequestBody PreSignedUrlRequest request) {
+    public ResponseEntity<PreSignedUrlResponse> generateDownloadUrl(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Pre-signed URL request for download",
+                    required = true
+            )
+            @RequestBody PreSignedUrlRequest request) {
         User currentUser = userService.getCurrentUser();
         request.setAction("read");
         if (request.getFileId() == null) {
@@ -65,12 +107,25 @@ public class PreSignedUrlController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Execute pre-signed download
-     */
+    @Operation(
+            summary = "Execute pre-signed download",
+            description = "Downloads a file using a pre-signed token. Token is invalidated after use. Supports idempotency."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File downloaded successfully",
+                    content = @Content(mediaType = "application/octet-stream")
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid or expired token"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @GetMapping("/read")
     public ResponseEntity<ByteArrayResource> executePreSignedDownload(
+            @Parameter(description = "Pre-signed token for download", required = true)
             @RequestParam String token,
+            @Parameter(description = "Optional idempotency key for retry-safe downloads")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
         // Check idempotency if key provided
         if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
@@ -152,14 +207,29 @@ public class PreSignedUrlController {
                 .body(resource);
     }
 
-    /**
-     * Execute pre-signed upload
-     */
+    @Operation(
+            summary = "Execute pre-signed upload",
+            description = "Uploads a file using a pre-signed token. Token is invalidated after use. Supports idempotency."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File uploaded successfully",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid or expired token, or folder mismatch"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Folder not found")
+    })
     @PostMapping("/write")
     public ResponseEntity<Map<String, Object>> executePreSignedUpload(
+            @Parameter(description = "Pre-signed token for upload", required = true)
             @RequestParam String token,
+            @Parameter(description = "File to upload", required = true)
             @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Optional folder ID (must match token if provided)")
             @RequestParam(value = "folderId", required = false) Long folderId,
+            @Parameter(description = "Optional idempotency key for retry-safe uploads")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
         // Check idempotency if key provided
         if (idempotencyKey != null && !idempotencyKey.isEmpty()) {

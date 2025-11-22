@@ -1,0 +1,144 @@
+config:
+  target: "http://localhost:8080"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 10
+      name: "Ramp up load"
+    - duration: 180
+      arrivalRate: 15
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 5
+      name: "Ramp down"
+  processor: "./artillery-processor.js"
+  variables:
+    usernamePrefix: "loadtest_user"
+    password: "testpassword123"
+  plugins:
+    expect: {}
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "GraphQL Load Test"
+    weight: 100
+    flow:
+      # Step 1: Register user
+      - post:
+          url: "/auth/register"
+          json:
+            username: "loadtest_{{ $randomString() }}_{{ $timestamp }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.username"
+              as: "registeredUsername"
+          expect:
+            - statusCode: [200, 201]
+      
+      - think: 1
+      
+      # Step 2: Login
+      - post:
+          url: "/auth/login"
+          json:
+            username: "{{ registeredUsername }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 3: GraphQL - Get current user
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            query: "query { currentUser { id username roles } }"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 4: GraphQL - Get all folders
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            query: "query { folders { id name parent { id name } user { id username } } }"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 5: GraphQL - Get root folders
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            query: "query { rootFolders { id name children { id name } user { id username } } }"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 6: GraphQL - Get all files
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            query: "query { files { id originalName contentType size uploadedAt folder { id name } user { id username } } }"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 7: GraphQL - Create folder mutation
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            query: "mutation($input: CreateFolderInput!) { createFolder(input: $input) { id name parent { id name } user { id username } } }"
+            variables:
+              input:
+                name: "GraphQLFolder_{{ $timestamp }}"
+                parentId: null
+          capture:
+            - json: "$.data.createFolder.id"
+              as: "createdFolderId"
+              strict: false
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      # Step 8: GraphQL - Get permissions
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            query: "query { permissions { id access viewed file { id originalName } user { id username } } }"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 2
+

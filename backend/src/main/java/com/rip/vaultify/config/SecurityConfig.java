@@ -49,9 +49,11 @@ public class SecurityConfig {
                         .requestMatchers("/auth/login", "/auth/register", "/h2-console/**", "/graphiql", "/graphiql/**",
                                 "/webjars/**", "/static/**", "/css/**", "/js/**", "/images/**", "/favicon.ico",
                                 "/v3/api-docs/**",
+                                "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/api/test/**",
+                                "/swagger-resources/**",
                                 "/api/v1/files/presign/**")
                         .permitAll()
                         .requestMatchers("/auth/me").authenticated() // /auth/me requires authentication

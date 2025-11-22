@@ -1,0 +1,190 @@
+config:
+  target: "http://localhost:8080"
+  phases:
+    - duration: 60
+      arrivalRate: 3
+      name: "Warm up"
+    - duration: 180
+      arrivalRate: 10
+      name: "Ramp up load"
+    - duration: 300
+      arrivalRate: 20
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 5
+      name: "Ramp down"
+  processor: "./artillery-processor.js"
+  variables:
+    password: "testpassword123"
+  plugins:
+    expect: {}
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Complete API Workflow"
+    weight: 60
+    flow:
+      # Authentication
+      - post:
+          url: "/auth/register"
+          json:
+            username: "user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.username"
+              as: "username"
+          expect:
+            - statusCode: [200, 201, 409]
+      
+      - think: 1
+      
+      - post:
+          url: "/auth/login"
+          json:
+            username: "{{ username }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "token"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      # Folders
+      - get:
+          url: "/api/folders"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - post:
+          url: "/api/folders"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            name: "TestFolder_{{ $timestamp }}"
+            parentId: null
+          capture:
+            - json: "$.id"
+              as: "folderId"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - get:
+          url: "/api/folders/{{ folderId }}"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      # Files
+      - get:
+          url: "/api/files/folder/{{ folderId }}"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      # Permissions
+      - get:
+          url: "/api/permissions/shared"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+
+  - name: "Read-Only Operations"
+    weight: 30
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            username: "{{ username }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "token"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - get:
+          url: "/api/folders"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - get:
+          url: "/api/users"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - get:
+          url: "/api/permissions/shared"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+
+  - name: "GraphQL Operations"
+    weight: 10
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            username: "{{ username }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "token"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            query: "query { currentUser { id username roles } }"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - post:
+          url: "/graphql"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            query: "query { folders { id name } }"
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+

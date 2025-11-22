@@ -7,6 +7,15 @@ import com.rip.vaultify.repository.FileRepository;
 import com.rip.vaultify.repository.UserRepository;
 import com.rip.vaultify.service.PermissionService;
 import com.rip.vaultify.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +28,8 @@ import java.util.Map;
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping("/api/permissions")
+@Tag(name = "Permissions", description = "File sharing and permission management operations")
+@SecurityRequirement(name = "bearerAuth")
 public class PermissionController {
 
     @Autowired
@@ -33,8 +44,34 @@ public class PermissionController {
     @Autowired
     private UserService userService;
 
+    @Operation(
+            summary = "Share a file with another user",
+            description = "Shares a file with another user by username. Only the file owner can share files. Access levels: READ (view only) or WRITE (view and download)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "File shared successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"id\": 1, \"access\": \"READ\", \"message\": \"File shared successfully\"}")
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid access type (must be READ or WRITE)"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - only owner can share"),
+            @ApiResponse(responseCode = "404", description = "File or user not found")
+    })
     @PostMapping("/share")
-    public ResponseEntity<?> share(@RequestBody Map<String, String> body){
+    public ResponseEntity<?> share(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Share request with fileId, username, and access level",
+                    required = true,
+                    content = @Content(
+                            examples = @ExampleObject(value = "{\"fileId\": \"1\", \"username\": \"john_doe\", \"access\": \"READ\"}")
+                    )
+            )
+            @RequestBody Map<String, String> body){
         try {
             // Get current authenticated user (the person trying to share)
             User currentUser = userService.getCurrentUser();
@@ -72,8 +109,24 @@ public class PermissionController {
         }
     }
     
+    @Operation(
+            summary = "Get file permissions",
+            description = "Retrieves all permissions for a file. Only the file owner can view permissions."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Permissions retrieved successfully",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - only owner can view permissions"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @GetMapping("/file/{fileId}")
-    public ResponseEntity<?> getFilePermissions(@PathVariable Long fileId) {
+    public ResponseEntity<?> getFilePermissions(
+            @Parameter(description = "File ID", required = true)
+            @PathVariable Long fileId) {
         try {
             User currentUser = userService.getCurrentUser();
             
@@ -93,6 +146,18 @@ public class PermissionController {
         }
     }
     
+    @Operation(
+            summary = "Get all shared files",
+            description = "Retrieves all files that have been shared with the current user (including pending and accepted shares)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Shared files retrieved successfully",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/shared")
     public ResponseEntity<?> getSharedFiles() {
         try {
@@ -128,8 +193,24 @@ public class PermissionController {
         }
     }
     
+    @Operation(
+            summary = "Get file owner information",
+            description = "Retrieves the owner information for a file. User must have READ permission or be the owner."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Owner information retrieved successfully",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "File not found")
+    })
     @GetMapping("/file/{fileId}/owner")
-    public ResponseEntity<?> getFileOwner(@PathVariable Long fileId) {
+    public ResponseEntity<?> getFileOwner(
+            @Parameter(description = "File ID", required = true)
+            @PathVariable Long fileId) {
         try {
             User currentUser = userService.getCurrentUser();
             
@@ -157,8 +238,23 @@ public class PermissionController {
         }
     }
     
+    @Operation(
+            summary = "Mark permission as viewed",
+            description = "Marks a shared file permission as viewed by the current user."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Permission marked as viewed",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Permission not found")
+    })
     @PostMapping("/viewed/{permissionId}")
-    public ResponseEntity<?> markPermissionAsViewed(@PathVariable Long permissionId) {
+    public ResponseEntity<?> markPermissionAsViewed(
+            @Parameter(description = "Permission ID", required = true)
+            @PathVariable Long permissionId) {
         try {
             User currentUser = userService.getCurrentUser();
             permissionService.markPermissionAsViewed(permissionId, currentUser);
@@ -169,6 +265,18 @@ public class PermissionController {
         }
     }
     
+    @Operation(
+            summary = "Get accepted shared files",
+            description = "Retrieves all files that have been shared with the current user and have been accepted."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Accepted shared files retrieved successfully",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/accepted")
     public ResponseEntity<?> getAcceptedSharedFiles() {
         try {
@@ -204,8 +312,33 @@ public class PermissionController {
         }
     }
     
+    @Operation(
+            summary = "Update file permission",
+            description = "Updates the access level of a file permission. Only the file owner can update permissions."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Permission updated successfully",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid access type (must be READ or WRITE)"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - only owner can update permissions"),
+            @ApiResponse(responseCode = "404", description = "Permission not found")
+    })
     @PutMapping("/{permissionId}")
-    public ResponseEntity<?> updatePermission(@PathVariable Long permissionId, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updatePermission(
+            @Parameter(description = "Permission ID to update", required = true)
+            @PathVariable Long permissionId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Update request with new access level",
+                    required = true,
+                    content = @Content(
+                            examples = @ExampleObject(value = "{\"access\": \"WRITE\"}")
+                    )
+            )
+            @RequestBody Map<String, String> body) {
         try {
             User currentUser = userService.getCurrentUser();
             
@@ -230,8 +363,24 @@ public class PermissionController {
         }
     }
     
+    @Operation(
+            summary = "Revoke file permission",
+            description = "Revokes a file permission, removing access for the user. Only the file owner can revoke permissions."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Permission revoked successfully",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - only owner can revoke permissions"),
+            @ApiResponse(responseCode = "404", description = "Permission not found")
+    })
     @DeleteMapping("/{permissionId}")
-    public ResponseEntity<?> revokePermission(@PathVariable Long permissionId) {
+    public ResponseEntity<?> revokePermission(
+            @Parameter(description = "Permission ID to revoke", required = true)
+            @PathVariable Long permissionId) {
         try {
             User currentUser = userService.getCurrentUser();
             permissionService.revokePermission(permissionId, currentUser);
