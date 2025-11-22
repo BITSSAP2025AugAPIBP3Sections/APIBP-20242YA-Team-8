@@ -33,9 +33,16 @@ api.interceptors.request.use(
   }
 );
 
-// Handle unauthorized responses
+// Handle unauthorized and rate limit responses
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Store rate limit headers for potential use
+    if (response.headers['x-ratelimit-remaining']) {
+      // Optionally log or store rate limit info
+      console.debug('Rate limit remaining:', response.headers['x-ratelimit-remaining']);
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       // Clear all caches on 401 (unauthorized)
@@ -43,6 +50,29 @@ api.interceptors.response.use(
       etagCache.clear();
       localStorage.removeItem('token');
       window.location.href = '/login';
+    } else if (error.response?.status === 429) {
+      // Rate limit exceeded
+      const retryAfter = error.response.headers['retry-after'] || 
+                        error.response.data?.retryAfter || 
+                        60;
+      const message = error.response.data?.message || 
+                     error.response.data?.error || 
+                     'Too many requests. Please try again later.';
+      
+      // Create a more detailed error message
+      error.rateLimitInfo = {
+        message,
+        retryAfter: parseInt(retryAfter),
+        resetTime: error.response.headers['x-ratelimit-reset'] 
+          ? new Date(parseInt(error.response.headers['x-ratelimit-reset']) * 1000)
+          : new Date(Date.now() + retryAfter * 1000),
+        limit: error.response.headers['x-ratelimit-limit'],
+        remaining: error.response.headers['x-ratelimit-remaining'],
+        type: error.response.headers['x-ratelimit-type'] || 'api'
+      };
+      
+      // Log rate limit info for debugging
+      console.warn('Rate limit exceeded:', error.rateLimitInfo);
     }
     return Promise.reject(error);
   }
