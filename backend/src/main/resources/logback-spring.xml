@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <springProfile name="!prod">
+    <!-- Default profile (local development) -->
+    <springProfile name="!prod,!dev,!test">
         <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
         
         <!-- Console appender with JSON format for consistency -->
@@ -8,23 +9,13 @@
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
                 <includeMdc>true</includeMdc>
-                <customFields>{"application":"vaultify","environment":"${spring.profiles.active:-local}"}</customFields>
+                <customFields>{"application":"vaultify","environment":"local"}</customFields>
             </encoder>
         </appender>
 
-        <!-- SolarWinds for local development -->
-        <appender name="SOLARWINDS_LOCAL" class="com.rip.vaultify.config.SolarWindsHttpAppender">
-            <endpoint>https://logs.collector.ap-01.cloud.solarwinds.com/v1/logs</endpoint>
-            <token>${SOLARWINDS_TOKEN:-}</token>
-            <applicationName>vaultify-local</applicationName>
-            <queueSize>500</queueSize>
-            <flushIntervalMs>5000</flushIntervalMs>
-        </appender>
-        
-        <!-- Console appender for development -->
+        <!-- Console appender for development without SolarWinds -->
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="SOLARWINDS_LOCAL"/>
         </root>
         
         <!-- Set specific loggers to DEBUG for development -->
@@ -33,16 +24,16 @@
         <logger name="org.springframework.web" level="DEBUG"/>
     </springProfile>
 
+    <!-- Production profile -->
     <springProfile name="prod">
-        <!-- Production configuration with SolarWinds integration -->
         <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
         
-        <!-- Console appender (kept for local debugging) -->
+        <!-- Console appender -->
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
                 <includeMdc>true</includeMdc>
-                <customFields>{"application":"vaultify"}</customFields>
+                <customFields>{"application":"vaultify","environment":"prod"}</customFields>
             </encoder>
         </appender>
 
@@ -109,7 +100,7 @@
         </logger>
     </springProfile>
 
-    <!-- Development and test profiles -->
+    <!-- Development and test profiles with SolarWinds -->
     <springProfile name="dev,test">
         <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
         
@@ -118,14 +109,14 @@
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
                 <includeMdc>true</includeMdc>
-                <customFields>{"application":"vaultify","environment":"${spring.profiles.active:-unknown}"}</customFields>
+                <customFields>{"application":"vaultify","environment":"${spring.profiles.active:-dev}"}</customFields>
             </encoder>
         </appender>
 
-        <!-- Optional: SolarWinds for development testing -->
+        <!-- SolarWinds for development testing (with default token if not provided) -->
         <appender name="SOLARWINDS_DEV" class="com.rip.vaultify.config.SolarWindsHttpAppender">
             <endpoint>${SOLARWINDS_ENDPOINT:-https://logs.collector.ap-01.cloud.solarwinds.com/v1/logs}</endpoint>
-            <token>${SOLARWINDS_TOKEN:-}</token>
+            <token>${SOLARWINDS_TOKEN:-2XMO6SGUoyu4uIKPe-YQc-ar7kVnogNKUCj-RJz5rAW6I5yEw1hIvqu-JE0s6m9jM91c3wo}</token>
             <applicationName>vaultify-dev</applicationName>
             <queueSize>500</queueSize>
             <flushIntervalMs>5000</flushIntervalMs>
@@ -133,7 +124,6 @@
 
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <!-- SolarWinds enabled for development -->
             <appender-ref ref="SOLARWINDS_DEV"/>
         </root>
 

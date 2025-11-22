@@ -74,7 +74,16 @@ public class FileController {
     @PostMapping("/upload")
     public ResponseEntity<FileResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("folderId") Long folderId) throws IOException {
+            @RequestParam("folderId") Long folderId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
+        
+        // Check idempotency if key provided
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            FileResponse cached = idempotencyService.getCachedResponse(idempotencyKey, FileResponse.class);
+            if (cached != null) {
+                return ResponseEntity.ok(cached);
+            }
+        }
         
         User currentUser = userService.getCurrentUser();
         LoggingConfig.LoggingContext.setUserId(currentUser.getId());
@@ -94,7 +103,14 @@ public class FileController {
             logger.info(AUDIT_MARKER, "File upload successful - fileId: {}, fileName: {}, size: {} bytes, user: {}", 
                        uploadedFile.getId(), uploadedFile.getOriginalName(), uploadedFile.getSize(), currentUser.getId());
             
-            return ResponseEntity.ok(new FileResponse(uploadedFile));
+            FileResponse response = new FileResponse(uploadedFile);
+            
+            // Store in idempotency cache if key provided
+            if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+                idempotencyService.storeResponse(idempotencyKey, response);
+            }
+            
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error(FILE_OPERATION_MARKER, "File upload failed - fileName: {}, folderId: {}, user: {}, error: {}", 
                         file.getOriginalFilename(), folderId, currentUser.getId(), e.getMessage(), e);
@@ -107,27 +123,6 @@ public class FileController {
             LoggingConfig.LoggingContext.removeContext("contentType");
             LoggingConfig.LoggingContext.removeContext("fileId");
         }
-            @RequestParam("folderId") Long folderId,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
-        
-        // Check idempotency if key provided
-        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
-            FileResponse cached = idempotencyService.getCachedResponse(idempotencyKey, FileResponse.class);
-            if (cached != null) {
-                return ResponseEntity.ok(cached);
-            }
-        }
-        
-        User currentUser = userService.getCurrentUser();
-        File uploadedFile = fileService.uploadFile(file, folderId, currentUser.getId());
-        FileResponse response = new FileResponse(uploadedFile);
-        
-        // Store in idempotency cache if key provided
-        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
-            idempotencyService.storeResponse(idempotencyKey, response);
-        }
-        
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/folder/{folderId}")
@@ -233,7 +228,6 @@ public class FileController {
         LoggingConfig.LoggingContext.addContext("action", "file_download");
         LoggingConfig.LoggingContext.addContext("fileId", id.toString());
         
-<<<<<<< HEAD
         logger.info(FILE_OPERATION_MARKER, "File download attempt - fileId: {}, user: {}", id, currentUser.getId());
         
         try {
@@ -247,20 +241,50 @@ public class FileController {
             if (!permissionService.isOwner(file, user) && !permissionService.hasWritePermission(file, user)) {
                 logger.warn(SECURITY_MARKER, "File download denied - insufficient permissions - fileId: {}, fileName: {}, user: {}", 
                            id, file.getOriginalName(), currentUser.getId());
-                return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            // Check idempotency if key provided
+            if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+                ByteArrayResource cached = idempotencyService.getCachedResponse(idempotencyKey, ByteArrayResource.class);
+                if (cached != null) {
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getOriginalName() + "\"")
+                            .body(cached);
+                }
+            }
+            
+            String etag = generateETag(file);
+            
+            // Check if client has cached version
+            if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
+                return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
+                        .eTag(etag)
                         .build();
             }
             
-            byte[] data = fileService.downloadFile(id, currentUser.getId());
+            byte[] data = Objects.requireNonNull(fileService.downloadFile(id, currentUser.getId()), "File data cannot be null");
             ByteArrayResource resource = new ByteArrayResource(data);
+            
+            // Store in idempotency cache if key provided
+            if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+                idempotencyService.storeResponse(idempotencyKey, resource);
+            }
+            
+            String contentType = file.getContentType();
+            if (contentType == null) {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+            MediaType mediaType = MediaType.parseMediaType(contentType);
+            String downloadName = Objects.requireNonNullElse(file.getOriginalName(), "downloaded-file");
             
             logger.info(AUDIT_MARKER, "File download successful - fileId: {}, fileName: {}, size: {} bytes, user: {}", 
                        id, file.getOriginalName(), file.getSize(), currentUser.getId());
 
-            // Download: with attachment header, requires WRITE permission
             return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(file.getContentType()))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getOriginalName() + "\"")
+                    .eTag(etag)
+                    .contentType(mediaType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
                     .body(resource);
         } catch (Exception e) {
             logger.error(FILE_OPERATION_MARKER, "File download failed - fileId: {}, user: {}, error: {}", 
@@ -272,54 +296,6 @@ public class FileController {
             LoggingConfig.LoggingContext.removeContext("fileName");
             LoggingConfig.LoggingContext.removeContext("fileSize");
         }
-=======
-        // Check if user has WRITE permission (required for download)
-        User user = new User();
-        user.setId(currentUser.getId());
-        if (!permissionService.isOwner(file, user) && !permissionService.hasWritePermission(file, user)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        
-        // Check idempotency if key provided
-        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
-            ByteArrayResource cached = idempotencyService.getCachedResponse(idempotencyKey, ByteArrayResource.class);
-            if (cached != null) {
-                return ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getOriginalName() + "\"")
-                        .body(cached);
-            }
-        }
-        
-        String etag = generateETag(file);
-        
-        // Check if client has cached version
-        if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
-            return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
-                    .eTag(etag)
-                    .build();
-        }
-        
-        byte[] data = Objects.requireNonNull(fileService.downloadFile(id, currentUser.getId()), "File data cannot be null");
-        ByteArrayResource resource = new ByteArrayResource(data);
-        
-        // Store in idempotency cache if key provided
-        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
-            idempotencyService.storeResponse(idempotencyKey, resource);
-        }
-        
-        String contentType = file.getContentType();
-        if (contentType == null) {
-            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        }
-        MediaType mediaType = MediaType.parseMediaType(contentType);
-        String downloadName = Objects.requireNonNullElse(file.getOriginalName(), "downloaded-file");
-
-        return ResponseEntity.ok()
-                .eTag(etag)
-                .contentType(mediaType)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
-                .body(resource);
->>>>>>> 1bb8cd43d9a51486982420e803f41343c883328a
     }
     
     @PostMapping("/copy")
@@ -336,5 +312,4 @@ public class FileController {
         File copiedFile = fileService.copySharedFileToFolder(fileId, folderId, currentUser.getId());
         return ResponseEntity.ok(new FileResponse(copiedFile, currentUser, permissionService));
     }
-
 }

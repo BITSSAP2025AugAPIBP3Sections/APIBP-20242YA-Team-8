@@ -131,6 +131,15 @@
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>7.4</version>
+        </dependency>
+
+        <!-- Janino for conditional processing in logback -->
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+            <version>3.1.11</version>
+        </dependency>
+
         <!-- Bucket4j for Rate Limiting -->
         <dependency>
             <groupId>com.bucket4j</groupId>
