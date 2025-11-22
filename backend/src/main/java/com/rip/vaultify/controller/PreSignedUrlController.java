@@ -4,6 +4,7 @@ import com.rip.vaultify.dto.PreSignedUrlRequest;
 import com.rip.vaultify.dto.PreSignedUrlResponse;
 import com.rip.vaultify.model.User;
 import com.rip.vaultify.service.FileService;
+import com.rip.vaultify.service.IdempotencyService;
 import com.rip.vaultify.service.PreSignedUrlService;
 import com.rip.vaultify.service.UserService;
 import org.springframework.core.io.ByteArrayResource;
@@ -24,13 +25,16 @@ public class PreSignedUrlController {
     private final PreSignedUrlService preSignedUrlService;
     private final FileService fileService;
     private final UserService userService;
+    private final IdempotencyService idempotencyService;
 
     public PreSignedUrlController(PreSignedUrlService preSignedUrlService,
                                   FileService fileService,
-                                  UserService userService) {
+                                  UserService userService,
+                                  IdempotencyService idempotencyService) {
         this.preSignedUrlService = preSignedUrlService;
         this.fileService = fileService;
         this.userService = userService;
+        this.idempotencyService = idempotencyService;
     }
 
     /**
@@ -66,7 +70,47 @@ public class PreSignedUrlController {
      */
     @GetMapping("/read")
     public ResponseEntity<ByteArrayResource> executePreSignedDownload(
-            @RequestParam String token) throws IOException {
+            @RequestParam String token,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
+        // Check idempotency if key provided
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            ByteArrayResource cached = idempotencyService.getCachedResponse(idempotencyKey, ByteArrayResource.class);
+            if (cached != null) {
+                // Try to validate token to get file info for headers
+                // If token is already invalidated (from first request), use default headers
+                try {
+                    Map<String, Object> tokenData = preSignedUrlService.validateToken(token);
+                    Long fileId = tokenData.get("fileId") != null
+                            ? ((Number) tokenData.get("fileId")).longValue()
+                            : null;
+                    Long userId = ((Number) tokenData.get("userId")).longValue();
+                    var file = fileService.getFileByIdAndUser(fileId, userId);
+                    
+                    String contentType = file.getContentType();
+                    if (contentType == null) {
+                        contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+                    }
+                    String downloadName = file.getOriginalName();
+                    if (downloadName == null) {
+                        downloadName = "downloaded-file";
+                    }
+                    
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.parseMediaType(contentType))
+                            .header(HttpHeaders.CONTENT_DISPOSITION,
+                                    "attachment; filename=\"" + downloadName + "\"")
+                            .body(cached);
+                } catch (RuntimeException e) {
+                    // Token already invalidated, use default headers for cached response
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .header(HttpHeaders.CONTENT_DISPOSITION,
+                                    "attachment; filename=\"downloaded-file\"")
+                            .body(cached);
+                }
+            }
+        }
+        
         // Validate token
         Map<String, Object> tokenData = preSignedUrlService.validateToken(token);
         Long fileId = tokenData.get("fileId") != null
@@ -83,6 +127,11 @@ public class PreSignedUrlController {
         var file = fileService.getFileByIdAndUser(fileId, userId);
         byte[] data = Objects.requireNonNull(fileService.downloadFile(fileId, userId), "File data cannot be null");
         ByteArrayResource resource = new ByteArrayResource(data);
+
+        // Store in idempotency cache if key provided
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            idempotencyService.storeResponse(idempotencyKey, resource);
+        }
 
         // Invalidate token after use (one-time use)
         preSignedUrlService.invalidateToken(token);
@@ -110,7 +159,17 @@ public class PreSignedUrlController {
     public ResponseEntity<Map<String, Object>> executePreSignedUpload(
             @RequestParam String token,
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "folderId", required = false) Long folderId) throws IOException {
+            @RequestParam(value = "folderId", required = false) Long folderId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) throws IOException {
+        // Check idempotency if key provided
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> cached = idempotencyService.getCachedResponse(idempotencyKey, Map.class);
+            if (cached != null) {
+                return ResponseEntity.ok(cached);
+            }
+        }
+        
         // Validate token
         Map<String, Object> tokenData = preSignedUrlService.validateToken(token);
         Long fileId = tokenData.get("fileId") != null
@@ -144,13 +203,21 @@ public class PreSignedUrlController {
         Long userId = ((Number) tokenData.get("userId")).longValue();
         var uploadedFile = fileService.uploadFile(file, targetFolderId, userId);
 
-        // Invalidate token after use (one-time use)
-        preSignedUrlService.invalidateToken(token);
-
-        return ResponseEntity.ok(Map.of(
+        // Create response map
+        Map<String, Object> response = Map.of(
                 "id", uploadedFile.getId(),
                 "originalName", uploadedFile.getOriginalName(),
                 "size", uploadedFile.getSize()
-        ));
+        );
+
+        // Store in idempotency cache if key provided
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            idempotencyService.storeResponse(idempotencyKey, response);
+        }
+
+        // Invalidate token after use (one-time use)
+        preSignedUrlService.invalidateToken(token);
+
+        return ResponseEntity.ok(response);
     }
 }
