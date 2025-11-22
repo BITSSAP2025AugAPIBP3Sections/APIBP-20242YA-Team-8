@@ -1,0 +1,52 @@
+meta {
+  name: Rate Limit Test
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8080/auth/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "testuser",
+    "password": "testpass"
+  }
+}
+
+docs {
+  # Rate Limiting Test Request
+  
+  ## Instructions:
+  1. Send this request 6 times rapidly
+  2. First 5 requests should return 401/400 (normal auth errors)
+  3. 6th request should return 429 (Rate Limit Exceeded)
+  
+  ## Check Response Headers:
+  - X-RateLimit-Limit: 5
+  - X-RateLimit-Remaining: decreases with each request (4, 3, 2, 1, 0)
+  - X-RateLimit-Reset: timestamp when limit resets
+  - X-RateLimit-Type: authentication
+  
+  ## Expected 429 Response:
+  ```json
+  {
+    "error": "Rate limit exceeded",
+    "message": "Too many authentication requests. Please try again later.",
+    "retryAfter": 60
+  }
+  ```
+}
+
+settings {
+  encodeUrl: true
+}
+
+

@@ -1,0 +1,34 @@
+meta {
+  name: Get All Folders
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8080/api/folders
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+docs {
+  # Get All Folders
+  
+  ## Rate Limit: 100 requests per 60 seconds (API type)
+  
+  ## Testing:
+  1. Get a token first (use auth/login.bru)
+  2. Replace {{token}} with your actual token
+  3. Send 101 requests rapidly to test rate limiting
+  4. Check X-RateLimit-Type: api
+  5. Check X-RateLimit-Remaining decreases
+}
+
+settings {
+  encodeUrl: true
+}
+

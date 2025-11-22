@@ -1,14 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getAllOfflineFiles } from '../services/offlineStorage';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [hasOfflineFiles, setHasOfflineFiles] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkOfflineFiles = async () => {
+      try {
+        const files = await getAllOfflineFiles();
+        setHasOfflineFiles(files.length > 0);
+      } catch (err) {
+        // Silently handle IndexedDB errors
+        if (err.name !== 'VersionError') {
+          console.error('Failed to check offline files:', err);
+        }
+        setHasOfflineFiles(false);
+      }
+    };
+    checkOfflineFiles();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +37,25 @@ const Login = () => {
       await login(username, password);
       navigate('/folders');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      console.error('Login error:', err);
+      
+      if (err.response?.status === 429) {
+        const rateLimitInfo = err.rateLimitInfo;
+        const retryAfter = rateLimitInfo?.retryAfter || 60;
+        const resetTime = rateLimitInfo?.resetTime
+          ? new Date(rateLimitInfo.resetTime).toLocaleTimeString()
+          : new Date(Date.now() + retryAfter * 1000).toLocaleTimeString();
+        setError(
+          `Rate limit exceeded. Too many login attempts. Please try again after ${retryAfter} seconds (or at ${resetTime}).`
+        );
+      } else {
+        // Handle different error types
+        const errorMessage = err.response?.data?.error || 
+                            err.response?.data?.message || 
+                            err.message || 
+                            'Login failed';
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -80,6 +116,19 @@ const Login = () => {
             Register
           </Link>
         </p>
+        {hasOfflineFiles && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-800 text-center mb-2">
+              You have files available offline
+            </p>
+            <Link
+              to="/offline"
+              className="block text-center text-sm text-green-700 hover:text-green-800 font-medium"
+            >
+              View Offline Files →
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

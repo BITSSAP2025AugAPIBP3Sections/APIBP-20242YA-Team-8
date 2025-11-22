@@ -1,6 +1,7 @@
 package com.rip.vaultify.config;
 
 import com.rip.vaultify.security.JwtAuthFilter;
+import com.rip.vaultify.security.RateLimitFilter;
 import com.rip.vaultify.security.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +29,9 @@ public class SecurityConfig {
     private JwtAuthFilter jwtAuthFilter;
 
     @Autowired
+    private RateLimitFilter rateLimitFilter;
+
+    @Autowired
     private CustomUserDetailsService userDetailsService;
 
     @Bean
@@ -35,27 +39,29 @@ public class SecurityConfig {
         http
                 // Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Disable CSRF for H2 and others
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**", "/auth/**", "/graphql", "/graphiql")
-                        .disable())
+                // Disable CSRF (not needed for stateless JWT API)
+                .csrf(csrf -> csrf.disable())
                 // Allow frames (needed for H2 UI)
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.disable()))
                 // Define route permissions
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/h2-console/**", "/graphiql", "/graphiql/**",
+                        .requestMatchers("/auth/login", "/auth/register", "/h2-console/**", "/graphiql", "/graphiql/**",
                                 "/webjars/**", "/static/**", "/css/**", "/js/**", "/images/**", "/favicon.ico",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/api/test/**")
+                                "/api/v1/files/presign/**")
                         .permitAll()
+                        .requestMatchers("/auth/me").authenticated() // /auth/me requires authentication
                         .anyRequest().authenticated())
                 // Stateless session management for JWT
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
+                // Add filters: RateLimitFilter (order 1) -> JwtAuthFilter (order 2) -> UsernamePasswordAuthenticationFilter
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

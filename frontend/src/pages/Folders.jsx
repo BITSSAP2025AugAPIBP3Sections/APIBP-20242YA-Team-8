@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { folderAPI, permissionAPI } from '../services/api';
+import { useFolders, useCreateFolder, useDeleteFolder } from '../hooks/useFolders';
+import { permissionAPI } from '../services/api';
 import SharingDialog from '../components/SharingDialog';
 import SharedFilesNotification from '../components/SharedFilesNotification';
 import SharedFilesSection from '../components/SharedFilesSection';
 
 const Folders = () => {
-  const [folders, setFolders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -16,10 +15,17 @@ const Folders = () => {
   const [showSharedFiles, setShowSharedFiles] = useState(false);
   const [sharedFilesCount, setSharedFilesCount] = useState(0); // pending notifications count
   const [sharedAcceptedCount, setSharedAcceptedCount] = useState(0); // accepted shared files count
-  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('folders'); // 'folders' or 'shared'
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+
+  // Use React Query hooks for data fetching
+  const { data: allFolders = [], isLoading: loading, error: foldersError, refetch } = useFolders();
+  const createFolder = useCreateFolder();
+  const deleteFolder = useDeleteFolder();
+
+  // Filter to show only root folders (folders without a parent)
+  const folders = allFolders.filter(folder => !folder.parent);
 
   // Read tab from URL
   useEffect(() => {
@@ -30,15 +36,23 @@ const Folders = () => {
     }
   }, []);
 
+  // Set error from query
+  useEffect(() => {
+    if (foldersError) {
+      setError(foldersError.response?.data?.error || 'Failed to fetch folders');
+    } else {
+      setError('');
+    }
+  }, [foldersError]);
+
   useEffect(() => {
     // Initial load
-    fetchFolders();
     checkSharedFiles();
     checkAcceptedSharedFiles();
     
-    // Periodic refresh every 30 seconds with subtle loading indicator
+    // Periodic refresh every 30 seconds (React Query will handle caching)
     const refreshInterval = setInterval(() => {
-      refreshFolders();
+      refetch(); // Refetch folders (React Query will use cache if fresh)
     }, 30000); // Every 30 seconds
     
     // Check for shared files periodically
@@ -51,7 +65,7 @@ const Folders = () => {
       clearInterval(refreshInterval);
       clearInterval(sharedFilesInterval);
     };
-  }, []);
+  }, [refetch]);
 
   const checkSharedFiles = async () => {
     try {
@@ -71,45 +85,17 @@ const Folders = () => {
     }
   };
 
-  const fetchFolders = async () => {
-    try {
-      setLoading(true);
-      const response = await folderAPI.getAll();
-      // Filter to show only root folders (folders without a parent)
-      const rootFolders = response.data.filter(folder => !folder.parent);
-      setFolders(rootFolders);
-      setError(''); // Clear any previous errors
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch folders');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshFolders = async () => {
-    try {
-      setRefreshing(true);
-      const response = await folderAPI.getAll();
-      // Filter to show only root folders (folders without a parent)
-      const rootFolders = response.data.filter(folder => !folder.parent);
-      setFolders(rootFolders);
-    } catch (err) {
-      // Don't show error on background refresh to avoid disrupting user
-      console.error('Background refresh failed:', err);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  // Removed fetchFolders and refreshFolders - React Query handles this
 
   const handleCreateFolder = async (e) => {
     e.preventDefault();
     if (!newFolderName.trim()) return;
 
     try {
-      await folderAPI.create(newFolderName.trim());
+      await createFolder.mutateAsync({ name: newFolderName.trim(), parentId: null });
       setNewFolderName('');
       setShowCreateDialog(false);
-      fetchFolders();
+      // React Query will automatically refetch folders
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create folder');
     }
@@ -119,8 +105,8 @@ const Folders = () => {
     if (!window.confirm('Are you sure you want to delete this folder?')) return;
 
     try {
-      await folderAPI.delete(id);
-      fetchFolders();
+      await deleteFolder.mutateAsync(id);
+      // React Query will automatically refetch folders
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete folder');
     }
@@ -208,15 +194,7 @@ const Folders = () => {
             <h2 className="text-3xl font-bold text-gray-800">
               {activeTab === 'folders' ? 'My Folders' : 'Shared Files'}
             </h2>
-            {refreshing && activeTab === 'folders' && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Refreshing...</span>
-              </div>
-            )}
+            {/* Removed refreshing indicator - React Query handles background updates */}
           </div>
           <div className="flex gap-3 items-center">
             {activeTab === 'folders' ? (
@@ -244,12 +222,12 @@ const Folders = () => {
                   + Create Folder
                 </button>
                 <button
-                  onClick={refreshFolders}
-                  disabled={refreshing}
+                  onClick={() => refetch()}
+                  disabled={loading}
                   className="px-3 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
                   title="Refresh folders"
                 >
-                  <svg className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
@@ -387,8 +365,8 @@ const Folders = () => {
           setShowSharedFiles(false);
           checkSharedFiles();
           checkAcceptedSharedFiles();
-          // Refresh folders after accepting files
-          refreshFolders();
+          // Refresh folders after accepting files (React Query will handle caching)
+          refetch();
         }}
       />
     </div>
