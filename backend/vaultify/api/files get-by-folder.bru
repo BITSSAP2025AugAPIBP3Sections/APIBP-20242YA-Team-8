@@ -1,0 +1,32 @@
+meta {
+  name: Get Files by Folder
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8080/api/files/folder/1
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+docs {
+  # Get Files by Folder
+  
+  ## Rate Limit: 100 requests per 60 seconds (API type)
+  
+  ## Testing Rate Limit:
+  - Send 101 requests rapidly
+  - 101st should return 429
+  - Check X-RateLimit-Type: api
+}
+
+settings {
+  encodeUrl: true
+}
+

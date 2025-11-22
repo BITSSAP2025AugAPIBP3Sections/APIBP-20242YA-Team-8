@@ -19,6 +19,18 @@ const Register = () => {
       await register(username, password);
       navigate('/login');
     } catch (err) {
+      if (err.response?.status === 429) {
+        const rateLimitInfo = err.rateLimitInfo;
+        const retryAfter = rateLimitInfo?.retryAfter || 60;
+        const resetTime = rateLimitInfo?.resetTime
+          ? new Date(rateLimitInfo.resetTime).toLocaleTimeString()
+          : new Date(Date.now() + retryAfter * 1000).toLocaleTimeString();
+        setError(
+          `Rate limit exceeded. Too many registration attempts. Please try again after ${retryAfter} seconds (or at ${resetTime}).`
+        );
+      } else {
+        setError(err.response?.data?.error || err.response?.data?.message || 'Registration failed');
+      }
       // Handle different error types
       const errorMessage = err.message || err.response?.data?.error || 'Registration failed';
       setError(errorMessage);

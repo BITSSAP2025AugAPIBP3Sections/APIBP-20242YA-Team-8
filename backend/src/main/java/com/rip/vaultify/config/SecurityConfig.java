@@ -1,6 +1,7 @@
 package com.rip.vaultify.config;
 
 import com.rip.vaultify.security.JwtAuthFilter;
+import com.rip.vaultify.security.RateLimitFilter;
 import com.rip.vaultify.security.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +27,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
+
+    @Autowired
+    private RateLimitFilter rateLimitFilter;
 
     @Autowired
     private CustomUserDetailsService userDetailsService;
@@ -56,6 +60,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
+                // Add filters: RateLimitFilter (order 1) -> JwtAuthFilter (order 2) -> UsernamePasswordAuthenticationFilter
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
