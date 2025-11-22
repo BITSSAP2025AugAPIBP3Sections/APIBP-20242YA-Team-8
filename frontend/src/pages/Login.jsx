@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getAllOfflineFiles } from '../services/offlineStorage';
@@ -37,6 +37,8 @@ const Login = () => {
       await login(username, password);
       navigate('/folders');
     } catch (err) {
+      console.error('Login error:', err);
+      
       if (err.response?.status === 429) {
         const rateLimitInfo = err.rateLimitInfo;
         const retryAfter = rateLimitInfo?.retryAfter || 60;
@@ -47,12 +49,13 @@ const Login = () => {
           `Rate limit exceeded. Too many login attempts. Please try again after ${retryAfter} seconds (or at ${resetTime}).`
         );
       } else {
-        setError(err.response?.data?.error || err.response?.data?.message || 'Login failed');
+        // Handle different error types
+        const errorMessage = err.response?.data?.error || 
+                            err.response?.data?.message || 
+                            err.message || 
+                            'Login failed';
+        setError(errorMessage);
       }
-      // Handle different error types
-      const errorMessage = err.message || err.response?.data?.error || 'Login failed';
-      setError(errorMessage);
-      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
