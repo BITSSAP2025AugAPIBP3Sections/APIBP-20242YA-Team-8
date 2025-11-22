@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Default profile (local development) -->
+    <springProfile name="!prod,!dev,!test">
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        
+        <!-- Console appender with JSON format for consistency -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"application":"vaultify","environment":"local"}</customFields>
+            </encoder>
+        </appender>
+
+        <!-- Console appender for development without SolarWinds -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        
+        <!-- Set specific loggers to DEBUG for development -->
+        <logger name="com.rip.vaultify" level="DEBUG"/>
+        <logger name="org.springframework.security" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+    </springProfile>
+
+    <!-- Production profile -->
+    <springProfile name="prod">
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        
+        <!-- Console appender -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"application":"vaultify","environment":"prod"}</customFields>
+            </encoder>
+        </appender>
+
+        <!-- SolarWinds HTTP appender -->
+        <appender name="SOLARWINDS" class="com.rip.vaultify.config.SolarWindsHttpAppender">
+            <endpoint>https://logs.collector.ap-01.cloud.solarwinds.com/v1/logs</endpoint>
+            <token>${SOLARWINDS_TOKEN}</token>
+            <applicationName>vaultify</applicationName>
+            <queueSize>2000</queueSize>
+            <flushIntervalMs>3000</flushIntervalMs>
+        </appender>
+
+        <!-- Async wrapper for SolarWinds appender -->
+        <appender name="ASYNC_SOLARWINDS" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="SOLARWINDS"/>
+            <queueSize>1000</queueSize>
+            <discardingThreshold>200</discardingThreshold>
+            <maxFlushTime>5000</maxFlushTime>
+            <neverBlock>true</neverBlock>
+        </appender>
+
+        <!-- Root logger for production -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_SOLARWINDS"/>
+        </root>
+
+        <!-- Application-specific loggers -->
+        <logger name="com.rip.vaultify" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_SOLARWINDS"/>
+        </logger>
+
+        <!-- Security events -->
+        <logger name="com.rip.vaultify.security" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_SOLARWINDS"/>
+        </logger>
+
+        <!-- Authentication events -->
+        <logger name="com.rip.vaultify.controller.AuthController" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_SOLARWINDS"/>
+        </logger>
+
+        <!-- File operations -->
+        <logger name="com.rip.vaultify.controller.FileController" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_SOLARWINDS"/>
+        </logger>
+
+        <!-- Spring Security -->
+        <logger name="org.springframework.security" level="WARN"/>
+        
+        <!-- Reduce verbose Spring logging -->
+        <logger name="org.springframework.web" level="WARN"/>
+        <logger name="org.springframework.boot" level="INFO"/>
+        <logger name="org.hibernate" level="WARN"/>
+        
+        <!-- Database logging -->
+        <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_SOLARWINDS"/>
+        </logger>
+    </springProfile>
+
+    <!-- Development and test profiles with SolarWinds -->
+    <springProfile name="dev,test">
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        
+        <!-- Console appender with JSON format for consistency -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"application":"vaultify","environment":"${spring.profiles.active:-dev}"}</customFields>
+            </encoder>
+        </appender>
+
+        <!-- SolarWinds for development testing (with default token if not provided) -->
+        <appender name="SOLARWINDS_DEV" class="com.rip.vaultify.config.SolarWindsHttpAppender">
+            <endpoint>${SOLARWINDS_ENDPOINT:-https://logs.collector.ap-01.cloud.solarwinds.com/v1/logs}</endpoint>
+            <token>${SOLARWINDS_TOKEN:-2XMO6SGUoyu4uIKPe-YQc-ar7kVnogNKUCj-RJz5rAW6I5yEw1hIvqu-JE0s6m9jM91c3wo}</token>
+            <applicationName>vaultify-dev</applicationName>
+            <queueSize>500</queueSize>
+            <flushIntervalMs>5000</flushIntervalMs>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="SOLARWINDS_DEV"/>
+        </root>
+
+        <!-- Development specific logging levels -->
+        <logger name="com.rip.vaultify" level="DEBUG"/>
+        <logger name="org.springframework.security" level="DEBUG"/>
+        <logger name="org.springframework.web.servlet.DispatcherServlet" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    </springProfile>
+</configuration>

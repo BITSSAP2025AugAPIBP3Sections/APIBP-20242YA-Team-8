@@ -51,6 +51,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/api/test/**",
                                 "/api/v1/files/presign/**")
                         .permitAll()
                         .requestMatchers("/auth/me").authenticated() // /auth/me requires authentication
