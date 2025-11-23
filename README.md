@@ -1,6 +1,6 @@
 # Vaultify
 
-A modern file storage and sharing application built with Spring Boot (backend) and React (frontend).
+A modern, open-source file storage and sharing application built with Spring Boot (backend) and React (frontend). Vaultify provides a secure, scalable solution for file management with features like folder organization, file sharing, and permission management.
 
 ## Project Structure
 
@@ -29,7 +29,22 @@ vaultify/
 
 ### Running the Application
 
-#### 1. Start the Backend
+#### 1. Configure the Backend
+
+First, set up the configuration file:
+
+```bash
+cd backend
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+```
+
+Edit `application.properties` and set a secure JWT secret (minimum 32 characters), or use an environment variable:
+
+```bash
+export JWT_SECRET=$(openssl rand -hex 32)
+```
+
+#### 2. Start the Backend
 
 ```bash
 cd backend
@@ -44,7 +59,7 @@ The backend will start on `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 
-#### 2. Start the Frontend
+#### 3. Start the Frontend
 
 ```bash
 cd frontend
@@ -520,6 +535,41 @@ From the `frontend/` directory:
 - Build: `npm run build`
 - Preview build: `npm run preview`
 
+## Environment Variables
+
+For production deployments, set the following environment variables:
+
+- `JWT_SECRET`: A secure secret key for JWT token signing (minimum 32 characters)
+  - Generate one: `openssl rand -hex 32`
+- `SOLARWINDS_TOKEN`: SolarWinds logging token (optional)
+- `SOLARWINDS_ENABLED`: Enable/disable SolarWinds logging (default: false)
+
+### Initial Setup
+
+1. Copy the example configuration file:
+   ```bash
+   cd backend
+   cp src/main/resources/application.properties.example src/main/resources/application.properties
+   ```
+
+2. Edit `application.properties` and set your JWT secret:
+   ```properties
+   vaultify.jwt.secret=your-secure-secret-here-minimum-32-characters
+   ```
+
+   Or use environment variables:
+   ```bash
+   export JWT_SECRET=$(openssl rand -hex 32)
+   ```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## Code of Conduct
+
+This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). Please read it before participating.
+
 ## License
 
-[Your License Here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

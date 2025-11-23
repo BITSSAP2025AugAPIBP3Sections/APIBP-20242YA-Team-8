@@ -575,7 +575,9 @@ public ResponseEntity<?> getFolders(Authentication authentication) {
 ### Backend Configuration (`application.properties`)
 ```properties
 # JWT Configuration
-vaultify.jwt.secret=9c8099fc-e4c7-4246-bdfa-24e86e281305
+# Use environment variable JWT_SECRET in production
+# Generate a secure secret: openssl rand -hex 32
+vaultify.jwt.secret=${JWT_SECRET:your-secure-secret-here-minimum-32-characters}
 vaultify.jwt.expirationMs=86400000  # 24 hours in milliseconds
 ```
 
