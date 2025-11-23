@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useFolders, useCreateFolder, useDeleteFolder } from '../hooks/useFolders';
 import { permissionAPI } from '../services/api';
@@ -136,15 +136,27 @@ const Folders = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Vaultify</h1>
+              <Link to="/" className="block">
+                <h1 className="text-2xl font-bold text-gray-800 hover:text-indigo-600 transition-colors cursor-pointer">
+                  Vaultify
+                </h1>
+              </Link>
               <p className="text-sm text-gray-600">Welcome, {user?.username}</p>
             </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors text-sm"
+              >
+                Home
+              </Link>
+              <button
+                onClick={logout}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>

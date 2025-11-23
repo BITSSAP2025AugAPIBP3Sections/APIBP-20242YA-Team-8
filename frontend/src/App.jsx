@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Folders from './pages/Folders';
@@ -12,6 +13,7 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route
         path="/login"
         element={user ? <Navigate to="/folders" replace /> : <Login />}
@@ -40,7 +42,6 @@ const AppRoutes = () => {
         path="/offline"
         element={<OfflineFiles />}
       />
-      <Route path="/" element={<Navigate to="/folders" replace />} />
     </Routes>
   );
 };
