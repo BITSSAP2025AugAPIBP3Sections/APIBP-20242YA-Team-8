@@ -58,7 +58,7 @@ Feature suggestions are welcome! Please create an issue with:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/vaultify.git
+   git clone https://github.com/BITSSAP2025AugAPIBP3Sections/APIBP-20242YA-Team-8.git
    cd vaultify
    ```
 

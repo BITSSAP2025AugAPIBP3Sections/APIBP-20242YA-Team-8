@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useFolder, useCreateFolder, useDeleteFolder } from '../hooks/useFolders';
 import { useFilesByFolder, useDownloadFile, useDeleteFile, useUploadFile } from '../hooks/useFiles';
@@ -219,36 +219,53 @@ const Files = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <button
-                onClick={() => navigate('/folders')}
-                className="text-indigo-600 hover:text-indigo-700 mb-2 flex items-center"
-              >
-                <svg
-                  className="w-5 h-5 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="flex items-center gap-3 mb-2">
+                <button
+                  onClick={() => navigate('/folders')}
+                  className="text-indigo-600 hover:text-indigo-700 flex items-center"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                Back to Folders
-              </button>
+                  <svg
+                    className="w-5 h-5 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  Back to Folders
+                </button>
+                <span className="text-gray-300">|</span>
+                <Link
+                  to="/"
+                  className="text-indigo-600 hover:text-indigo-700 text-sm transition-colors"
+                >
+                  Home
+                </Link>
+              </div>
               <h1 className="text-2xl font-bold text-gray-800">
                 {folder?.name || 'Files'}
               </h1>
               <p className="text-sm text-gray-600">Welcome, {user?.username}</p>
             </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors text-sm"
+              >
+                Home
+              </Link>
+              <button
+                onClick={logout}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
