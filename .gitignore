@@ -31,3 +31,30 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Sensitive Configuration Files ###
+# Application properties with secrets (use .example file instead)
+backend/src/main/resources/application.properties
+!backend/src/main/resources/application.properties.example
+
+### Uploaded Files ###
+backend/uploads/
+backend/uploads/**
+
+### Node Modules ###
+node_modules/
+frontend/node_modules/
+
+### Logs ###
+*.log
+logs/
+backend/logs/
+
+### Environment Variables ###
+.env
+.env.local
+.env.*.local
+
+### OS Files ###
+.DS_Store
+Thumbs.db
