@@ -6,7 +6,7 @@ A modern, secure file storage and sharing application built with Spring Boot (ba
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen)
 ![React](https://img.shields.io/badge/React-19.1.1-blue)
-![License](https://img.shields.io/badge/license-Unlicense-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
@@ -931,7 +931,9 @@ This is a team project. For contributions:
 
 ## 📄 License
 
-[Your License Here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**MIT License** - A permissive license that allows commercial use, modification, distribution, and private use. The only requirement is to include the license and copyright notice.
 
 ---
 
